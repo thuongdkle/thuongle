@@ -1,0 +1,2116 @@
+
+Portfolio with 10 assets: Apple, AIA, BHP, Credit Suisse, Deutsch Bank, Grupo Mexico, Huawei China, Royal Dutch Shell, Samsung, Tata
+
+- Data is from 2015 to 2020
+- Data of stock prices are cited from Finance.Yahoo. Data of Gdp, unemployment rate, interest rate are cited from IMF. Data of inflation rate is cited from world bank
+- Calculate return of portfolio
+- Calculate CVaR/ ES/ETL of portfolio
+- Calculate the annual return percentage of portfolio
+- Calculate return of each asset in portfolio
+- Find the relationship between stock prices and other economic variables
+- Forecast stock prices
+
+
+
+
+> View(APortfolio)
+> library(PerformanceAnalytics)
+> library(PortfolioAnalytics)
+> library(ggplot2)
+> library(stats)
+> library(base)
+> library(tseries)
+> library(dplyr)
+> library(tidyverse)
+> library(forecast)
+> library(zoo)
+> library(tibble)
+> 
+> glimpse(APortfolio)
+Observations: 60
+Variables: 10
+$ AAPL              <dbl> 115.17048, 119.89141, 115.91030, 112.09375, 104.34978, 102.38999, 110.93024, 109.81628, 9...
+$ AIA               <dbl> 47.98802, 47.29321, 47.32805, 47.09491, 39.96073, 37.49160, 42.68706, 43.34235, 43.62318,...
+$ BHP               <dbl> 39.06343, 33.99104, 31.00550, 29.22331, 28.05043, 24.08239, 25.96645, 21.06370, 20.33736,...
+$ CS                <dbl> 20.688709, 21.809320, 22.740356, 24.264620, 22.451984, 21.323202, 20.598150, 18.167566, 1...
+$ DB                <dbl> 30.09022, 28.31855, 29.00335, 33.67697, 28.90719, 27.41663, 26.87811, 24.70478, 23.22384,...
+$ Grupo.Mexico      <dbl> 39.82702, 40.10453, 40.06152, 37.25433, 34.82764, 34.81067, 34.23219, 30.87192, 31.45310,...
+$ Huawei            <dbl> 9.670147, 9.670147, 10.969342, 13.180843, 12.588446, 12.588446, 12.588446, 12.588446, 12....
+$ Royal.Dutch.Shell <dbl> 46.84388, 44.01542, 42.20542, 42.79416, 38.95262, 35.50375, 39.39960, 37.34325, 35.06052,...
+$ Samsung           <dbl> 273.4746, 253.4974, 245.9332, 239.1931, 219.8155, 228.8988, 276.9392, 259.1764, 254.3319,...
+$ TATA              <dbl> 41.17280, 38.28400, 34.45561, 29.64761, 25.30943, 25.04953, 29.55765, 31.55682, 29.45769,...
+> 
+> myportfolio <- APortfolio[, 1:10]
+> myportfolio<-ts(APortfolio, frequency=12, start = c(2015, 04, 01))
+> 
+> colnames(myportfolio)
+ [1] "AAPL"              "AIA"               "BHP"               "CS"                "DB"               
+ [6] "Grupo.Mexico"      "Huawei"            "Royal.Dutch.Shell" "Samsung"           "TATA"             
+> 
+> print(myportfolio)
+              AAPL      AIA      BHP        CS        DB Grupo.Mexico    Huawei Royal.Dutch.Shell      Samsung     TATA
+Apr 2015 115.17048 47.98802 39.06343 20.688709 30.090218     39.82702  9.670147          46.84388     273.4746 41.17280
+May 2015 119.89141 47.29321 33.99104 21.809320 28.318550     40.10453  9.670147          44.01542     253.4974 38.28400
+Jun 2015 115.91030 47.32805 31.00550 22.740356 29.003355     40.06152 10.969342          42.20542     245.9332 34.45561
+Jul 2015 112.09375 47.09491 29.22331 24.264620 33.676971     37.25433 13.180843          42.79416     239.1931 29.64761
+Aug 2015 104.34978 39.96073 28.05043 22.451984 28.907188     34.82764 12.588446          38.95262     219.8155 25.30943
+Sep 2015 102.38999 37.49160 24.08239 21.323202 27.416634     34.81067 12.588446          35.50375     228.8988 25.04953
+Oct 2015 110.93024 42.68706 25.96645 20.598150 26.878109     34.23219 12.588446          39.39960     276.9392 29.55765
+Nov 2015 109.81628 43.34235 21.06370 18.167566 24.704782     30.87192 12.588446          37.34325     259.1764 31.55682
+Dec 2015  98.12967 43.62318 20.33736 17.870955 23.223839     31.45310 12.588446          35.06052     254.3319 29.45769
+Jan 2016  90.74618 40.11273 17.29781 14.993410 17.203913     30.06810 12.514397          33.60601    1104.7914 24.96957
+Feb 2016  90.14021 37.16396 17.85046 11.228211 16.530758     32.61581 12.144148          34.80922    1131.6904 22.22072
+Mar 2016 102.15836 41.14246 20.44789 11.902073 16.290346     35.71303 13.531344          38.25183    1260.4227 29.03787
+Apr 2016  87.86423 43.71679 25.04390 12.811786 18.232878     37.52226 11.606053          41.48679    1196.0568 30.36731
+May 2016  93.60065 42.54664 21.55182 11.523027 17.117363     35.06137 11.369095          37.93301    1241.2090 33.47602
+Jun 2016  90.15322 43.89162 22.82240  9.508953 13.203449     37.08193 12.144148          44.36037    1368.9807 34.65552
+Jul 2016  98.27268 45.50145 23.72538 10.273225 12.924571     38.94075 12.390980          42.94242    1533.2988 37.81421
+Aug 2016 100.05500 46.44841 23.97310 11.588481 14.184333     40.49839 14.182982          40.94620    1613.9988 40.77000
+Sep 2016 107.18655 49.03274 27.93735 11.677351 12.587995     40.90035 13.042617          42.60562    1592.0802 39.98000
+Oct 2016 107.65112 46.55970 28.23567 12.352754 13.838140     40.20112 13.180843          42.18626    1632.9283 39.41000
+Nov 2016 104.78775 44.99027 30.26748 11.855088 15.194065     48.60045 13.506661          43.68627    1739.5319 33.07000
+Dec 2016 110.37668 41.61362 28.84844 12.717115 17.405859     54.69847 12.756292          47.57644    1795.3245 34.39000
+Jan 2017 115.64677 45.94144 33.29100 13.508046 19.146446     54.12725 11.443144          47.16608    8340.2793 38.96000
+Feb 2017 130.55174 46.65482 30.49323 13.410292 18.934883     52.74248 11.591244          45.13894    8124.6919 33.59000
+Mar 2017 137.50185 46.60726 29.28382 13.188119 16.501909     48.91109 11.176564          46.57549    8708.0459 35.65000
+Apr 2017 137.49226 51.22043 29.31794 13.561369 17.377008     48.12024 10.060884          45.14894   11329.0088 35.67000
+May 2017 146.21173 52.55207 28.89793 12.566039 16.809635     43.88788  9.596839          46.89249   11349.3203 36.83000
+Jun 2017 138.41538 54.89243 29.30970 13.581119 17.303196     44.63405  9.309330          46.14974   12070.3975 33.01000
+Jul 2017 142.94208 59.22224 34.30857 14.807158 17.351828     50.68198  8.179124          49.05794   14342.7812 34.44000
+Aug 2017 157.61783 57.77896 35.82388 14.122268 15.552450     51.51226  9.111048          48.01506   13783.3516 29.86000
+Sep 2017 148.70398 55.66395 33.37797 15.241245 16.807152     48.92644  8.952422          53.88716   15259.2910 31.27000
+Oct 2017 163.09967 56.72698 34.41304 15.164074 15.824789     54.76879  8.555860          56.31699   18957.8711 32.76000
+Nov 2017 165.81096 61.17237 34.89169 16.302343 18.343918     51.24581  8.555860          56.81674   17484.7480 31.19000
+Dec 2017 163.86999 64.40976 38.62019 17.218748 18.509266     57.41666  8.635172          59.70301   17539.8184 33.07000
+Jan 2018 162.12701 64.74800 41.16464 18.656055 17.838146     58.37198  8.198953          62.88530 1585046.1250 30.96000
+Feb 2018 172.47844 63.34674 39.04847 17.710712 15.503819     56.92130  7.326512          56.10983   29240.4043 28.02000
+Mar 2018 163.12831 64.16817 37.31018 16.196234 13.597452     53.96872  7.425653          58.10887   30582.5059 25.70000
+Apr 2018 160.67818 68.32364 40.22234 16.176941 13.286209     55.41263  7.138144          64.21859   51733.8242 25.12000
+May 2018 181.68904 69.57996 42.82926 14.855390 10.776808     44.13759  6.473901          64.13879   49488.7734 20.88000
+Jun 2018 180.67184 66.96549 43.02714 14.583299 10.439327     50.80073  5.770000          65.24366   45535.5234 19.55000
+Jul 2018 185.72765 66.86788 44.96299 15.739770 12.837817     52.79168  5.770000          63.79779   45480.8516 18.20000
+Aug 2018 222.17241 66.08695 41.33221 14.651903 11.068439     50.46741  5.820000          60.51090   47644.2695 18.55000
+Sep 2018 221.10043 68.23452 42.88088 14.642102 11.166738     49.33606  5.820000          64.57237   45677.5273 15.36000
+Oct 2018 214.36185 58.20123 40.83027 12.672181  9.603788     42.86156  5.820000          59.82024   42008.6133 12.21000
+Nov 2018 174.90971 62.61413 39.22110 11.584313  9.004166     38.38977  4.100000          56.47008   41463.6914 12.20000
+Dec 2018 155.03711 63.74187 42.69583 10.643456  8.011348     37.70589  3.940000          55.38707   38342.7695 12.18000
+Jan 2019 163.58800 69.13541 45.25988 11.868531  8.728930     42.69418  3.380000          58.02982   46150.0000 13.07000
+Feb 2019 170.18303 76.98057 48.77798 12.064544  9.082805     45.02516  4.320000          58.77830   45100.0000 12.50000
+Mar 2019 187.49587 76.63734 50.41006 11.417704  7.981859     50.54954  4.300000          59.96012   44650.0000 12.56000
+Apr 2019 198.07736 78.40250 49.85432 13.034803  8.139136     52.66208  4.020000          60.84147   45850.0000 15.40000
+May 2019 172.80811 72.22444 48.87513 11.045281  6.654826     46.33391  3.580000          58.93813   42500.0000 12.51000
+Jun 2019 196.11522 83.54232 54.71265 11.970000  7.630000     49.11990  3.440000          62.53382   47000.0000 11.68000
+Jul 2019 211.09737 80.22046 51.71856 12.070000  7.810000     45.18800  3.070000          60.37454   45350.0000  9.71000
+Aug 2019 206.83656 75.60951 46.28590 11.680000  7.250000     44.48450  3.060000          53.04055   44000.0000  8.22000
+Sep 2019 222.77089 73.42800 46.49304 12.210000  7.500000     44.46522  3.200000          57.94091   49050.0000  8.39000
+Oct 2019 247.42816 78.45000 47.52112 12.380000  7.250000     48.83079  2.600000          56.38357   50400.0000 12.08000
+Nov 2019 265.81918 78.40000 50.06672 13.090000  7.210000     49.22591  3.330000          55.72581   50300.0000 11.22000
+Dec 2019 292.95471 81.80000 53.15642 13.450000  7.780000     50.24504  3.180000          58.91986   55800.0000 12.77000
+Jan 2020 308.77719 77.75000 49.65865 12.610000  9.150000     49.14403  2.990000          52.34700   56400.0000 12.13000
+Feb 2020 272.71277 76.90000 42.08014 11.280000  8.720000     45.42997  2.740000          43.75023   54200.0000  9.16000
+Mar 2020 254.81000 68.15000 35.99790  8.380000  6.510000     40.02770  2.980000          31.39000   52100.0000  4.55000
+> 
+> is.ts(myportfolio)
+[1] TRUE
+> #Calculate conditional value at risk
+> 
+> ETL(R=myportfolio, p=0.99, portfolio_method = "component")
+no weights passed in, assuming equal weighted portfolio
+$MES
+[1] -4970.758
+$contribution
+             AAPL               AIA               BHP                CS                DB      Grupo.Mexico 
+      -15.8084920        -5.8381355        -3.5820134        -1.4361340        -1.5098790        -4.4948518 
+           Huawei Royal.Dutch.Shell           Samsung              TATA 
+       -0.8296049        -5.0226588     -4929.7434290        -2.4930539 
+$pct_contrib_MES
+             AAPL               AIA               BHP                CS                DB      Grupo.Mexico 
+     0.0031802979      0.0011744960      0.0007206171      0.0002889165      0.0003037523      0.0009042588 
+           Huawei Royal.Dutch.Shell           Samsung              TATA 
+     0.0001668970      0.0010104412      0.9917487793      0.0005015440 
+> 
+> ES(R=myportfolio, p=0.99, method="gaussian")
+ES calculation produces unreliable result (inverse risk) for column: 1 : -12.4448892683642
+ES calculation produces unreliable result (inverse risk) for column: 2 : -22.0640988542782
+ES calculation produces unreliable result (inverse risk) for column: 3 : -9.41358129415147
+ES calculation produces unreliable result (inverse risk) for column: 4 : -5.04657375310813
+ES calculation produces unreliable result (risk over 100%) for column: 5 : 2.81041412252587
+ES calculation produces unreliable result (inverse risk) for column: 6 : -25.348631235472
+ES calculation produces unreliable result (risk over 100%) for column: 7 : 1.72751848895179
+ES calculation produces unreliable result (inverse risk) for column: 8 : -25.0379834500411
+ES calculation produces unreliable result (risk over 100%) for column: 9 : 486498.701699619
+ES calculation produces unreliable result (risk over 100%) for column: 10 : 3.10713373631932
+   AAPL AIA BHP CS DB Grupo.Mexico Huawei Royal.Dutch.Shell Samsung TATA
+ES   NA  NA  NA NA -1           NA     -1                NA      -1   -1
+> ES(R=myportfolio, p=0.99, method="historical")
+ES calculation produces unreliable result (inverse risk) for column: 1 : -87.864235
+ES calculation produces unreliable result (inverse risk) for column: 2 : -37.163956
+ES calculation produces unreliable result (inverse risk) for column: 3 : -17.297812
+ES calculation produces unreliable result (inverse risk) for column: 4 : -8.38
+ES calculation produces unreliable result (inverse risk) for column: 5 : -6.51
+ES calculation produces unreliable result (inverse risk) for column: 6 : -30.068096
+ES calculation produces unreliable result (inverse risk) for column: 7 : -2.6
+ES calculation produces unreliable result (inverse risk) for column: 8 : -31.389999
+ES calculation produces unreliable result (inverse risk) for column: 9 : -219.815475
+ES calculation produces unreliable result (inverse risk) for column: 10 : -4.55
+   AAPL AIA BHP CS DB Grupo.Mexico Huawei Royal.Dutch.Shell Samsung TATA
+ES   NA  NA  NA NA NA           NA     NA                NA      NA   NA
+> #because of limitation of gaussian, using modified since most financial return series are non-normal
+> ES(R=myportfolio, p=0.99, method="modified", Operational= TRUE)
+ES calculation produces unreliable result (risk over 100%) for column: 1 : 163.623718623898
+ES calculation produces unreliable result (inverse risk) for column: 2 : -6.52413481303063
+ES calculation produces unreliable result (inverse risk) for column: 3 : -8.38587968748892
+ES calculation produces unreliable result (risk over 100%) for column: 4 : 28.8148114899136
+ES calculation produces unreliable result (risk over 100%) for column: 5 : 29.6101032572366
+ES calculation produces unreliable result (inverse risk) for column: 6 : -25.9328378663821
+ES calculation produces unreliable result (risk over 100%) for column: 7 : 3.04610499198095
+ES calculation produces unreliable result (inverse risk) for column: 8 : -24.213293628843
+ES calculation produces unreliable result (inverse risk) for column: 9 : -49297.43429035
+ES calculation produces unreliable result (risk over 100%) for column: 10 : 3.6453671920243
+   AAPL AIA BHP CS DB Grupo.Mexico Huawei Royal.Dutch.Shell Samsung TATA
+ES   -1  NA  NA -1 -1           NA     -1                NA      NA   -1
+> #Calculate weighted returns for a portfolio of assets, an equal weight portfolio is assumed
+> 
+> Return.portfolio(R=myportfolio, rebalance_on="quarters")
+         portfolio.returns
+Apr 2015          66.39893
+May 2015         139.46724
+Jun 2015         202.97792
+Jul 2015          60.84236
+Aug 2015         117.93082
+Sep 2015         185.30147
+Oct 2015          61.97771
+Nov 2015         145.45045
+Dec 2015         215.22709
+Jan 2016         138.63035
+Feb 2016         905.94751
+Mar 2016        1247.45281
+Apr 2016         150.47088
+May 2016         991.09695
+Jun 2016        1355.32232
+Jul 2016         185.60845
+Aug 2016        1336.78789
+Sep 2016        1580.82827
+Oct 2016         197.65440
+Nov 2016        1440.93516
+Dec 2016        1783.01095
+Jan 2017         871.95095
+Feb 2017        7766.29350
+Mar 2017        8704.74487
+Apr 2017        1171.69779
+May 2017       10967.70528
+Jun 2017       12067.55743
+Jul 2017        1475.37722
+Aug 2017       13393.56405
+Sep 2017       15256.64355
+Oct 2017        1939.55013
+Nov 2017       17084.37609
+Dec 2017       17537.70495
+Jan 2018      158551.10751
+Feb 2018       29231.69046
+Mar 2018       30582.47761
+Apr 2018        5218.44009
+May 2018       49053.85627
+Jun 2018       45534.74148
+Jul 2018        4594.75471
+Aug 2018       47152.31839
+Sep 2018       45676.35630
+Oct 2018        4246.49944
+Nov 2018       41010.53440
+Dec 2018       38341.69373
+Jan 2019        4656.57548
+Feb 2019       44689.59552
+Mar 2019       44649.10274
+Apr 2019        4633.04317
+May 2019       42052.19119
+Jun 2019       46998.80576
+Jul 2019        4583.12589
+Aug 2019       43530.69974
+Sep 2019       49048.56577
+Oct 2019        5091.29236
+Nov 2019       49786.04640
+Dec 2019       55798.21955
+Jan 2020        5697.45569
+Feb 2020       53646.67238
+Mar 2020       52098.33310
+> 
+> mean(Return.portfolio(R=myportfolio, rebalance_on="quarters"))
+[1] 23812.57
+> 
+> plot(Return.portfolio(R=myportfolio, rebalance_on="years"))
+
+
+
+
+> plot(Return.portfolio(R=myportfolio, rebalance_on="quarters"))
+
+
+
+> #Calculate annualized return of each asset
+> Return.annualized(R=myportfolio)
+                         AAPL         AIA         BHP           CS          DB Grupo.Mexico       Huawei
+Annualized Return 1.34382e+26 1.39447e+21 3.88709e+18 1.303167e+14 1.11519e+14 7.537742e+19 128402261802
+                  Royal.Dutch.Shell      Samsung         TATA
+Annualized Return      2.635864e+20 1.527389e+47 2.598501e+16
+> #The Sharpe Ratio is a risk-adjusted measure of return that uses standard deviation to represent risk.
+>   #The Sharpe ratio is used to help investors understand the return of an investment compared to its risk. The ratio is the average return earned in excess of the risk-free rate per unit of volatility or total risk.  The ratio describes how much excess return you receive for the extra volatility you endure for holding a riskier asset. Remember, you need compensation for the additional risk you take for not holding a risk-free asset.
+>    #Usually, any Sharpe ratio greater than 1.0 is considered acceptable to good by investors.
+>    #A ratio higher than 2.0 is rated as very good.
+>    #A ratio of 3.0 or higher is considered excellent.
+>    #A ratio under 1.0 is considered sub-optimal.
+> 
+>      ##with Rf=0%
+> 
+> SharpeRatio.annualized(R=myportfolio, Rf = 0, scale = NA, geometric=TRUE)
+                                        AAPL          AIA          BHP           CS           DB Grupo.Mexico
+Annualized Sharpe Ratio (Rf=0%) 7.039669e+23 2.929462e+19 1.123065e+17 1.067382e+13 4.750773e+12 2.934132e+18
+                                    Huawei Royal.Dutch.Shell      Samsung        TATA
+Annualized Sharpe Ratio (Rf=0%) 9773322880      7.983819e+18 2.174914e+41 7.07087e+14
+
+
+> View(Market_beta_5y_of_10portfolio)
+> #create dataframes
+>   #dataframe with ES and beta market 
+> 
+> company<-c("AAPL", "AIA","BHP","CS","DB", "Grupo.Mexico","Huawei","Royal.Dutch.Shell", "Samsung", "TATA")
+> 
+> ESofmyportfolio<-c(163.623718623898, -6.52413481303063, -8.38587968748892, 28.8148114899136, 29.6101032572366, -25.9328378663821, 3.04610499198095, -24.213293628843, -49297.43429035, 3.6453671920243)
+> 
+> Betaofasset<-Market_beta_5y_of_10portfolio$`Beta (%Y monthly)`
+> 
+> framewithES<-data.frame(company, ESofmyportfolio, Betaofasset)
+> 
+> framewithES
+             company ESofmyportfolio Betaofasset
+1               AAPL      163.623719        1.29
+2                AIA       -6.524135        0.43
+3                BHP       -8.385880        0.97
+4                 CS       28.814811        1.48
+5                 DB       29.610103        1.41
+6       Grupo.Mexico      -25.932838        0.77
+7             Huawei        3.046105       -0.14
+8  Royal.Dutch.Shell      -24.213294        0.93
+9            Samsung   -49297.434290        0.68
+10              TATA        3.645367        1.62
+> 
+>   #calculate relationship bw ES and beta
+> summary(lm(formula = framewithES$ESofmyportfolio~framewithES$Betaofasset))
+Call:
+lm(formula = framewithES$ESofmyportfolio ~ framewithES$Betaofasset)
+Residuals:
+   Min     1Q Median     3Q    Max 
+-43064   2350   4061   5558  10337 
+Coefficients:
+                        Estimate Std. Error t value Pr(>|t|)
+(Intercept)                -9634      10806  -0.892    0.399
+framewithES$Betaofasset     5000      10063   0.497    0.633
+Residual standard error: 16290 on 8 degrees of freedom
+Multiple R-squared:  0.02994,	Adjusted R-squared:  -0.09131 
+F-statistic: 0.247 on 1 and 8 DF,  p-value: 0.6326
+> 
+> #dataframe with return of each asset and market beta
+> 
+> company<-c("AAPL", "AIA","BHP","CS","DB", "Grupo.Mexico","Huawei","Royal.Dutch.Shell", "Samsung", "TATA")
+> returnofasset<- c(1.34382e+26, 1.39447e+21, 3.88709e+18, 1.303167e+14, 1.11519e+14, 7.537742e+19, 128402261802, 2.635864e+20, 1.527389e+47, 2.598501e+16)
+> 
+> framewithreturn<-data.frame(company, returnofasset, Betaofasset)
+> 
+> framewithreturn
+             company returnofasset Betaofasset
+1               AAPL  1.343820e+26        1.29
+2                AIA  1.394470e+21        0.43
+3                BHP  3.887090e+18        0.97
+4                 CS  1.303167e+14        1.48
+5                 DB  1.115190e+14        1.41
+6       Grupo.Mexico  7.537742e+19        0.77
+7             Huawei  1.284023e+11       -0.14
+8  Royal.Dutch.Shell  2.635864e+20        0.93
+9            Samsung  1.527389e+47        0.68
+10              TATA  2.598501e+16        1.62
+>   #calcualte relationship between return and beta
+> lm(formula = framewithreturn$returnofasset~framewithreturn$Betaofasset)
+Call:
+lm(formula = framewithreturn$returnofasset ~ framewithreturn$Betaofasset)
+Coefficients:
+                (Intercept)  framewithreturn$Betaofasset  
+                  2.980e+46                   -1.538e+46  
+> summary(lm(formula = framewithreturn$returnofasset~framewithreturn$Betaofasset))
+Call:
+lm(formula = framewithreturn$returnofasset ~ framewithreturn$Betaofasset)
+Residuals:
+       Min         1Q     Median         3Q        Max 
+-3.195e+46 -1.734e+46 -1.241e+46 -7.298e+45  1.334e+47 
+Coefficients:
+                              Estimate Std. Error t value Pr(>|t|)
+(Intercept)                  2.980e+46  3.348e+46   0.890    0.399
+framewithreturn$Betaofasset -1.538e+46  3.117e+46  -0.493    0.635
+Residual standard error: 5.047e+46 on 8 degrees of freedom
+Multiple R-squared:  0.02954,	Adjusted R-squared:  -0.09176 
+F-statistic: 0.2435 on 1 and 8 DF,  p-value: 0.6349
+> 
+> #dataframewith return ES and beta and sharpe ratio
+> shratio<- c(7.039669e+23, 2.929462e+19, 1.123065e+17, 1.067382e+13, 4.750773e+12, 2.934132e+18, 9773322880, 7.983819e+18, 2.174914e+41, 7.07087e+14 )
+> 
+> 
+> newdata<-data.frame(company, returnofasset, ESofmyportfolio, Betaofasset, shratio)
+> newdata
+             company returnofasset ESofmyportfolio Betaofasset      shratio
+1               AAPL  1.343820e+26      163.623719        1.29 7.039669e+23
+2                AIA  1.394470e+21       -6.524135        0.43 2.929462e+19
+3                BHP  3.887090e+18       -8.385880        0.97 1.123065e+17
+4                 CS  1.303167e+14       28.814811        1.48 1.067382e+13
+5                 DB  1.115190e+14       29.610103        1.41 4.750773e+12
+6       Grupo.Mexico  7.537742e+19      -25.932838        0.77 2.934132e+18
+7             Huawei  1.284023e+11        3.046105       -0.14 9.773323e+09
+8  Royal.Dutch.Shell  2.635864e+20      -24.213294        0.93 7.983819e+18
+9            Samsung  1.527389e+47   -49297.434290        0.68 2.174914e+41
+10              TATA  2.598501e+16        3.645367        1.62 7.070870e+14
+
+
+> ###############forecast stock prices########
+> 
+> library(tseries)
+> library(MASS)
+Attaching package: ‘MASS’
+
+The following object is masked _by_ ‘.GlobalEnv’:
+
+survey
+The following object is masked from ‘package:dplyr’:
+
+select
+Warning message:
+package ‘MASS’ was built under R version 3.6.3 
+> library(forecast)
+> #####Credit Suisse######
+> 
+> #Plot and convert to ln format
+> lnCSstock=log(APortfolio$CS)
+> lnCSstock
+ [1] 3.029588 3.082337 3.124141 3.189019 3.111379 3.059796 3.025201 2.899638 2.883177 2.707611 2.418429 2.476713
+[13] 2.550366 2.444347 2.252234 2.329541 2.450012 2.457651 2.513879 2.472757 2.542949 2.603286 2.596022 2.579316
+[25] 2.607225 2.530998 2.608681 2.695111 2.647753 2.724005 2.718929 2.791309 2.845999 2.926171 2.874170 2.784779
+[37] 2.783587 2.698363 2.679877 2.756191 2.684570 2.683901 2.539409 2.449652 2.364945 2.473890 2.490271 2.435165
+[49] 2.567623 2.402003 2.482404 2.490723 2.457878 2.502255 2.516082 2.571849 2.598979 2.534490 2.423031 2.125848
+Ø 
+> #ACF, PACF and Dickey-Fuller test
+> acf(lnCSstock, lag.max = 20)
+> pacf(lnCSstock, lag.max = 20)
+> difflnCSstock=diff(lnCSstock, 1)
+> difflnCSstock
+ [1]  0.0527493089  0.0418037421  0.0648781789 -0.0776403379 -0.0515832088 -0.0345945097 -0.1255633496 -0.0164611471
+ [9] -0.1755659980 -0.2891813206  0.0582831360  0.0736529419 -0.1060181473 -0.1921136053  0.0773072202  0.1204705914
+[17]  0.0076395662  0.0562278804 -0.0411218916  0.0701915815  0.0603367839 -0.0072630361 -0.0167061233  0.0279088876
+[25] -0.0762273785  0.0776826617  0.0864301932 -0.0473578701  0.0762523974 -0.0050761622  0.0723797622  0.0546899504
+[33]  0.0801719681 -0.0520011040 -0.0893909082 -0.0011919129 -0.0852240708 -0.0184857925  0.0763136606 -0.0716204058
+[41] -0.0006691472 -0.1444919590 -0.0897572631 -0.0847066121  0.1089452004  0.0163804595 -0.0551057699  0.1324578009
+[49] -0.1656196562  0.0804002416  0.0083195155 -0.0328450577  0.0443773107  0.0138269791  0.0557663127  0.0271305261
+[57] -0.0644889561 -0.1114589039 -0.2971833316
+> adf.test(lnCSstock)
+Augmented Dickey-Fuller Test
+data:  lnCSstock
+Dickey-Fuller = -2.5581, Lag order = 3, p-value = 0.3492
+alternative hypothesis: stationary
+> adf.test(difflnCSstock)
+Augmented Dickey-Fuller Test
+data:  difflnCSstock
+Dickey-Fuller = -2.6539, Lag order = 3, p-value = 0.3106
+alternative hypothesis: stationary
+
+
+
+
+
+> #Time series and auto.arima
+> pricearima<-ts(lnCSstock, frequency = 12, start =c (2015, 04))
+> fitlnCSstock<-auto.arima(pricearima)
+> fitlnCSstock
+Series: pricearima 
+ARIMA(0,1,0) 
+sigma^2 estimated as 0.008937:  log likelihood=55.45
+AIC=-108.91   AICc=-108.83   BIC=-106.83
+> plot(pricearima, type="l")
+
+
+
+> title("Credit Suisse price")
+> exp(lnCSstock)
+ [1] 20.688709 21.809320 22.740356 24.264620 22.451984 21.323202 20.598150 18.167566 17.870955 14.993410 11.228211
+[12] 11.902073 12.811786 11.523027  9.508953 10.273225 11.588481 11.677351 12.352754 11.855088 12.717115 13.508046
+[23] 13.410292 13.188119 13.561369 12.566039 13.581119 14.807158 14.122268 15.241245 15.164074 16.302343 17.218748
+[34] 18.656055 17.710712 16.196234 16.176941 14.855390 14.583299 15.739770 14.651903 14.642102 12.672181 11.584313
+[45] 10.643456 11.868531 12.064544 11.417704 13.034803 11.045281 11.970000 12.070000 11.680000 12.210000 12.380000
+[56] 13.090000 13.450000 12.610000 11.280000  8.380000
+> #Forecasted value from ARIMA
+> forcastedvalue_ln<-forecast(fitlnCSstock, h=9)
+> forcastedvalue_ln
+         Point Forecast    Lo 80    Hi 80    Lo 95    Hi 95
+Apr 2020       2.125848 2.004699 2.246997 1.940566 2.311130
+May 2020       2.125848 1.954517 2.297179 1.863820 2.387876
+Jun 2020       2.125848 1.916011 2.335685 1.804930 2.446765
+Jul 2020       2.125848 1.883549 2.368146 1.755284 2.496412
+Aug 2020       2.125848 1.854950 2.396746 1.711545 2.540151
+Sep 2020       2.125848 1.829094 2.422602 1.672002 2.579694
+Oct 2020       2.125848 1.805317 2.446379 1.635638 2.616057
+Nov 2020       2.125848 1.783186 2.468510 1.601792 2.649904
+Dec 2020       2.125848 1.762400 2.489296 1.570003 2.681693
+> plot(forcastedvalue_ln)
+
+
+
+
+> forecastedvalueextracted<-as.numeric(forcastedvalue_ln$mean)
+> finalforecastedvalue=exp(forecastedvalueextracted)
+> finalforecastedvalue
+[1] 8.38 8.38 8.38 8.38 8.38 8.38 8.38 8.38 8.38
+> Forecasted_Credit_Suisse_stock_price<-finalforecastedvalue
+> Time<- c("Apr 2020", "May 2020", "June 2020", "July 2020", "August 2020", "September 2020", "October 2020", "November 2020", "December 2020")
+> 
+> Forecasted_stock_price_of_Credit_Suisse<-data.frame(Time, Forecasted_Credit_Suisse_stock_price)
+> Forecasted_stock_price_of_Credit_Suisse
+            Time Forecasted_Credit_Suisse_stock_price
+1       Apr 2020                                 8.38
+2       May 2020                                 8.38
+3      June 2020                                 8.38
+4      July 2020                                 8.38
+5    August 2020                                 8.38
+6 September 2020                                 8.38
+7   October 2020                                 8.38
+8  November 2020                                 8.38
+9  December 2020                                 8.38
+> #Ljung Box. Compute the Box Pierce or Ljungâ Box test statistic for examining the null hypothesis of independence in a given time series. These are sometimes known as âportmanteauâ tests.
+> 
+> Box.test(fitlnCSstock$residuals, lag=10, type="Ljung-Box")
+Box-Ljung test
+data:  fitlnCSstock$residuals
+X-squared = 4.2213, df = 10, p-value = 0.9368
+
+
+> ####Apple####
+> 
+> #Plot and convert to ln format
+> lnAPPLstock=log(APortfolio$AAPL)
+> lnAPPLstock
+ [1] 4.746413 4.786586 4.752817 4.719336 4.647749 4.628789 4.708902 4.698809 4.586290 4.508066 4.501366 4.626524
+[13] 4.475793 4.539037 4.501511 4.587746 4.605720 4.674571 4.678896 4.651937 4.703899 4.750540 4.871770 4.923637
+[25] 4.923568 4.985056 4.930259 4.962439 5.060173 5.001958 5.094361 5.110848 5.099073 5.088380 5.150272 5.094537
+[37] 5.079403 5.202297 5.196682 5.224281 5.403454 5.398617 5.367665 5.164270 5.043665 5.097351 5.136874 5.233757
+[49] 5.288658 5.152182 5.278702 5.352319 5.331929 5.406144 5.511120 5.582816 5.680018 5.732620 5.608419 5.540518
+> #ACF, PACF and Dickey-Fuller test
+> acf(lnAPPLstock, lag.max = 20)
+> pacf(lnAPPLstock, lag.max = 20)
+> difflnAPPLstock=diff(lnAPPLstock, 1)
+> difflnAPPLstock
+ [1]  4.017297e-02 -3.376980e-02 -3.348105e-02 -7.158700e-02 -1.895960e-02  8.011253e-02 -1.009268e-02 -1.125191e-01
+ [9] -7.822340e-02 -6.699976e-03  1.251577e-01 -1.507313e-01  6.324446e-02 -3.752662e-02  8.623541e-02  1.797395e-02
+[17]  6.885078e-02  4.324844e-03 -2.695878e-02  5.196199e-02  4.664163e-02  1.212292e-01  5.186770e-02 -6.968877e-05
+[25]  6.148813e-02 -5.479666e-02  3.218037e-02  9.773379e-02 -5.821568e-02  9.240387e-02  1.648685e-02 -1.177494e-02
+[33] -1.069333e-02  6.189217e-02 -5.573516e-02 -1.513361e-02  1.228932e-01 -5.614291e-03  2.759896e-02  1.791724e-01
+[41] -4.836651e-03 -3.095159e-02 -2.033955e-01 -1.206054e-01  5.368655e-02  3.952345e-02  9.688229e-02  5.490088e-02
+[49] -1.364759e-01  1.265206e-01  7.361714e-02 -2.039055e-02  7.421491e-02  1.049764e-01  7.169603e-02  9.720172e-02
+[57]  5.260192e-02 -1.242008e-01 -6.790095e-02
+> adf.test(lnAPPLstock)
+Augmented Dickey-Fuller Test
+data:  lnAPPLstock
+Dickey-Fuller = -3.0804, Lag order = 3, p-value = 0.1381
+alternative hypothesis: stationary
+> adf.test(difflnAPPLstock)
+Augmented Dickey-Fuller Test
+data:  difflnAPPLstock
+Dickey-Fuller = -4.4608, Lag order = 3, p-value = 0.01
+alternative hypothesis: stationary
+Warning message:
+In adf.test(difflnAPPLstock) : p-value smaller than printed p-value
+> #Time series and auto.arima
+> pricearimaofapple<-ts(lnAPPLstock, frequency = 12, start =c (2015, 04))
+> fitlnAPPLstock<-auto.arima(pricearimaofapple)
+> fitlnAPPLstock
+Series: pricearimaofapple 
+ARIMA(0,1,0) 
+sigma^2 estimated as 0.006223:  log likelihood=66.13
+AIC=-130.26   AICc=-130.19   BIC=-128.18
+> plot(pricearimaofapple, type="l")
+> title("Apple price")
+> exp(lnAPPLstock)
+ [1] 115.17048 119.89141 115.91030 112.09375 104.34978 102.38999 110.93024 109.81628  98.12967  90.74618  90.14021
+[12] 102.15836  87.86423  93.60065  90.15322  98.27268 100.05500 107.18655 107.65112 104.78775 110.37668 115.64677
+[23] 130.55174 137.50185 137.49226 146.21173 138.41538 142.94208 157.61783 148.70398 163.09967 165.81096 163.86999
+[34] 162.12701 172.47844 163.12831 160.67818 181.68904 180.67184 185.72765 222.17241 221.10043 214.36185 174.90971
+[45] 155.03711 163.58800 170.18303 187.49586 198.07736 172.80811 196.11522 211.09737 206.83656 222.77089 247.42816
+[56] 265.81918 292.95471 308.77719 272.71277 254.81000
+> #Forecasted value from ARIMA
+> forcastedapple_ln<-forecast(fitlnAPPLstock, h=9)
+> forcastedapple_ln
+         Point Forecast    Lo 80    Hi 80    Lo 95    Hi 95
+Apr 2020       5.540518 5.439423 5.641613 5.385907 5.695129
+May 2020       5.540518 5.397549 5.683488 5.321865 5.759171
+Jun 2020       5.540518 5.365417 5.715619 5.272724 5.808312
+Jul 2020       5.540518 5.338329 5.742708 5.231296 5.849740
+Aug 2020       5.540518 5.314464 5.766573 5.194797 5.886239
+Sep 2020       5.540518 5.292888 5.788149 5.161800 5.919236
+Oct 2020       5.540518 5.273047 5.807990 5.131456 5.949580
+Nov 2020       5.540518 5.254579 5.826457 5.103212 5.977824
+Dec 2020       5.540518 5.237234 5.843802 5.076685 6.004351
+> plot(forcastedapple_ln)
+> forecastedappleextracted<-as.numeric(forcastedapple_ln$mean)
+> finalforecastedapple=exp(forecastedappleextracted)
+> finalforecastedapple
+[1] 254.81 254.81 254.81 254.81 254.81 254.81 254.81 254.81 254.81
+> 
+> Forecasted_Apple_stock_price<-finalforecastedapple
+> #Ljung Box
+> 
+> Box.test(fitlnAPPLstock$residuals, lag=10, type="Ljung-Box")
+Box-Ljung test
+data:  fitlnAPPLstock$residuals
+X-squared = 3.7064, df = 10, p-value = 0.9596
+> #####AIA######
+> 
+> #Plot and convert to ln format
+> lnAIAstock=log(APortfolio$AIA)
+> lnAIAstock
+ [1] 3.870951 3.856367 3.857103 3.852165 3.687897 3.624117 3.753896 3.769130 3.775589 3.691694 3.615339 3.717041
+[13] 3.777732 3.750601 3.781723 3.817744 3.838342 3.892488 3.840735 3.806446 3.728428 3.827367 3.842776 3.841756
+[25] 3.936138 3.961804 4.005375 4.081297 4.056625 4.019333 4.038250 4.113696 4.165265 4.170503 4.148624 4.161507
+[37] 4.224256 4.242477 4.204177 4.202719 4.190971 4.222951 4.063906 4.136991 4.154842 4.236067 4.343553 4.339084
+[49] 4.361856 4.279779 4.425353 4.384779 4.325582 4.296305 4.362461 4.361824 4.404277 4.353499 4.342506 4.221711
+> #ACF, PACF and Dickey-Fuller test
+> acf(lnAIAstock, lag.max = 20)
+> pacf(lnAIAstock, lag.max = 20)
+> difflnAIAstock=diff(lnAIAstock, 1)
+> difflnAIAstock
+ [1] -0.0145846425  0.0007364096 -0.0049382795 -0.1642676705 -0.0637803706  0.1297789583  0.0152343652  0.0064585357
+ [9] -0.0838948703 -0.0763544233  0.1017014086  0.0606914405 -0.0271312830  0.0311224121  0.0360209144  0.0205978887
+[17]  0.0541460493 -0.0517527515 -0.0342891352 -0.0780186732  0.0989398390  0.0154087464 -0.0010199431  0.0943821568
+[25]  0.0256659937  0.0435709486  0.0759217173 -0.0246723143 -0.0372920260  0.0189172145  0.0754455974  0.0515696065
+[33]  0.0052376531 -0.0218793033  0.0128837224  0.0627485655  0.0182207252 -0.0382990954 -0.0014586798 -0.0117475386
+[41]  0.0319793716 -0.1590441238  0.0730844682  0.0178506599  0.0812255037  0.1074859233 -0.0044685488  0.0227712861
+[49] -0.0820772431  0.1455748093 -0.0405747477 -0.0591964867 -0.0292767475  0.0661560931 -0.0006374881  0.0424533274
+[57] -0.0507787292 -0.0109926485 -0.1207947150
+> adf.test(lnAIAstock)
+Augmented Dickey-Fuller Test
+data:  lnAIAstock
+Dickey-Fuller = -3.2335, Lag order = 3, p-value = 0.0907
+alternative hypothesis: stationary
+> adf.test(difflnAIAstock)
+Augmented Dickey-Fuller Test
+data:  difflnAIAstock
+Dickey-Fuller = -4.4891, Lag order = 3, p-value = 0.01
+alternative hypothesis: stationary
+Warning message:
+In adf.test(difflnAIAstock) : p-value smaller than printed p-value
+> #Time series and auto.arima
+> arimaAIA<-ts(lnAIAstock, frequency = 12, start =c (2015, 04))
+> fitlnAIAstock<-auto.arima(arimaAIA)
+> fitlnAIAstock
+Series: arimaAIA 
+ARIMA(0,1,0) 
+sigma^2 estimated as 0.004139:  log likelihood=78.16
+AIC=-154.32   AICc=-154.25   BIC=-152.24
+> plot(arimaAIA, type="l")
+> title("AIA Group price")
+> exp(lnAIAstock)
+ [1] 47.98802 47.29321 47.32805 47.09491 39.96073 37.49160 42.68706 43.34235 43.62318 40.11273 37.16396 41.14246
+[13] 43.71679 42.54664 43.89162 45.50145 46.44841 49.03274 46.55970 44.99027 41.61363 45.94144 46.65482 46.60726
+[25] 51.22043 52.55207 54.89243 59.22224 57.77897 55.66395 56.72698 61.17237 64.40976 64.74800 63.34675 64.16817
+[37] 68.32364 69.57996 66.96549 66.86788 66.08694 68.23452 58.20123 62.61413 63.74187 69.13541 76.98057 76.63734
+[49] 78.40250 72.22444 83.54232 80.22046 75.60951 73.42800 78.45000 78.40000 81.80000 77.75000 76.90000 68.15000
+> #Forecasted value from ARIMA
+> 
+> FCAIA_ln<-forecast(fitlnAIAstock, h=9)
+> FCAIA_ln
+         Point Forecast    Lo 80    Hi 80    Lo 95    Hi 95
+Apr 2020       4.221711 4.139262 4.304160 4.095616 4.347806
+May 2020       4.221711 4.105111 4.338312 4.043386 4.400036
+Jun 2020       4.221711 4.078905 4.364517 4.003309 4.440114
+Jul 2020       4.221711 4.056813 4.386609 3.969522 4.473901
+Aug 2020       4.221711 4.037350 4.406073 3.939755 4.503668
+Sep 2020       4.221711 4.019753 4.423669 3.912843 4.530579
+Oct 2020       4.221711 4.003572 4.439851 3.888096 4.555327
+Nov 2020       4.221711 3.988510 4.454912 3.865061 4.578361
+Dec 2020       4.221711 3.974364 4.469058 3.843427 4.599996
+> plot(FCAIA_ln)
+> 
+> FCAIAextracted<-as.numeric(FCAIA_ln$mean)
+> finalFCAIA=exp(FCAIAextracted)
+> finalFCAIA
+[1] 68.15 68.15 68.15 68.15 68.15 68.15 68.15 68.15 68.15
+> 
+> 
+> Forecasted_AIA_stock_price<-finalFCAIA
+> #Ljung Box
+> 
+> Box.test(fitlnAIAstock$residuals, lag=10, type="Ljung-Box")
+Box-Ljung test
+data:  fitlnAIAstock$residuals
+X-squared = 10.756, df = 10, p-value = 0.3768
+> #####BHP######
+> 
+> #Plot and convert to ln format
+> lnBHPstock=log(APortfolio$BHP)
+> lnBHPstock
+ [1] 3.665187 3.526097 3.434165 3.374967 3.334004 3.181481 3.256805 3.047551 3.012460 2.850580 2.882029 3.017880
+[13] 3.220630 3.070460 3.127742 3.166546 3.176933 3.329964 3.340586 3.410074 3.362056 3.505287 3.417505 3.377035
+[25] 3.378200 3.363770 3.377919 3.535395 3.578615 3.507896 3.538435 3.552249 3.653775 3.717580 3.664804 3.619266
+[37] 3.694422 3.757222 3.761831 3.805840 3.721642 3.758426 3.709424 3.669215 3.754101 3.812421 3.887279 3.920191
+[49] 3.909105 3.889269 4.002095 3.945817 3.834837 3.839303 3.861174 3.913356 3.973239 3.905173 3.739576 3.583461
+> #ACF, PACF and Dickey-Fuller test
+> acf(lnBHPstock, lag.max = 20)
+> pacf(lnBHPstock, lag.max = 20)
+> difflnBHPstock=diff(lnBHPstock, 1)
+> difflnBHPstock
+ [1] -0.139089712 -0.091932537 -0.059197764 -0.040962928 -0.152523117  0.075324772 -0.209254389 -0.035091398
+ [9] -0.161879668  0.031449035  0.135850693  0.202750737 -0.150170170  0.057281977  0.038803239  0.010387005
+[17]  0.153031932  0.010621534  0.069487834 -0.048018056  0.143231220 -0.087782144 -0.040469745  0.001164436
+[25] -0.014429512  0.014148620  0.157476667  0.043219471 -0.070718543  0.030539195  0.013813332  0.101526496
+[33]  0.063804337 -0.052776019 -0.045537274  0.075156144  0.062799097  0.004609635  0.044008422 -0.084197422
+[41]  0.036783890 -0.049002392 -0.040208724  0.084886312  0.058319708  0.074857931  0.032911779 -0.011085466
+[49] -0.019836637  0.112826275 -0.056278102 -0.110979390  0.004465288  0.021871535  0.052182294  0.059882354
+[57] -0.068066336 -0.165596548 -0.156115308
+> adf.test(lnBHPstock)
+Augmented Dickey-Fuller Test
+data:  lnBHPstock
+Dickey-Fuller = -2.5649, Lag order = 3, p-value = 0.3464
+alternative hypothesis: stationary
+> adf.test(difflnBHPstock)
+Augmented Dickey-Fuller Test
+data:  difflnBHPstock
+Dickey-Fuller = -3.0895, Lag order = 3, p-value = 0.1346
+alternative hypothesis: stationary
+> #Time series and auto.arima
+> arimaBHP<-ts(lnBHPstock, frequency = 12, start =c (2015, 04))
+> fitlnBHPstock<-auto.arima(arimaBHP)
+> fitlnBHPstock
+Series: arimaBHP 
+ARIMA(0,1,0) 
+sigma^2 estimated as 0.007922:  log likelihood=59.01
+AIC=-116.02   AICc=-115.95   BIC=-113.94
+> plot(arimaBHP, type="l")
+> title("BHP Group price")
+> exp(lnBHPstock)
+ [1] 39.06343 33.99104 31.00550 29.22331 28.05043 24.08239 25.96645 21.06370 20.33736 17.29781 17.85046 20.44789
+[13] 25.04391 21.55182 22.82240 23.72538 23.97310 27.93735 28.23567 30.26748 28.84844 33.29100 30.49324 29.28382
+[25] 29.31794 28.89793 29.30970 34.30857 35.82388 33.37797 34.41304 34.89169 38.62019 41.16464 39.04847 37.31018
+[37] 40.22234 42.82926 43.02714 44.96299 41.33221 42.88088 40.83027 39.22110 42.69583 45.25988 48.77798 50.41006
+[49] 49.85432 48.87513 54.71265 51.71856 46.28590 46.49304 47.52112 50.06672 53.15642 49.65865 42.08014 35.99790
+> #Forecasted value from ARIMA
+> 
+> FCBHP_ln<-forecast(fitlnBHPstock, h=9)
+> FCBHP_ln
+         Point Forecast    Lo 80    Hi 80    Lo 95    Hi 95
+Apr 2020       3.583461 3.469397 3.697524 3.409015 3.757906
+May 2020       3.583461 3.422150 3.744771 3.336758 3.830163
+Jun 2020       3.583461 3.385897 3.781025 3.281313 3.885609
+Jul 2020       3.583461 3.355333 3.811588 3.234570 3.932351
+Aug 2020       3.583461 3.328407 3.838515 3.193389 3.973532
+Sep 2020       3.583461 3.304063 3.862858 3.156159 4.010762
+Oct 2020       3.583461 3.281677 3.885245 3.121922 4.044999
+Nov 2020       3.583461 3.260840 3.906081 3.090055 4.076866
+Dec 2020       3.583461 3.241270 3.925651 3.060125 4.106796
+> plot(FCBHP_ln)
+> 
+> FCBHPextracted<-as.numeric(FCBHP_ln$mean)
+> finalFCBHP=exp(FCBHPextracted)
+> finalFCBHP
+[1] 35.9979 35.9979 35.9979 35.9979 35.9979 35.9979 35.9979 35.9979 35.9979
+> Forecasted_BHP_stock_price<-finalFCBHP
+> #Ljung Box
+> 
+> Box.test(fitlnBHPstock$residuals, lag=10, type="Ljung-Box")
+Box-Ljung test
+data:  fitlnBHPstock$residuals
+X-squared = 9.561, df = 10, p-value = 0.4798
+> #####DB######
+> 
+> #Plot and convert to ln format
+> lnDBstock=log(APortfolio$DB)
+> lnDBstock
+ [1] 3.404200 3.343517 3.367412 3.516814 3.364090 3.311150 3.291312 3.206997 3.145179 2.845137 2.805223 2.790573
+[13] 2.903226 2.840093 2.580478 2.559130 2.652138 2.532744 2.627429 2.720905 2.856807 2.952117 2.941006 2.803476
+[25] 2.855148 2.821952 2.850891 2.853698 2.744218 2.821805 2.761578 2.909298 2.918271 2.881339 2.741086 2.609882
+[37] 2.586727 2.377396 2.345580 2.552395 2.404098 2.412940 2.262158 2.197687 2.080859 2.166643 2.206383 2.077171
+[49] 2.096684 1.895342 2.032088 2.055405 1.981001 2.014903 1.981001 1.975469 2.051556 2.213754 2.165619 1.873339
+> #ACF, PACF and Dickey-Fuller test
+> acf(lnDBstock, lag.max = 20)
+> pacf(lnDBstock, lag.max = 20)
+> difflnDBstock=diff(lnDBstock, 1)
+> difflnDBstock
+ [1] -0.060683069  0.023894446  0.149402738 -0.152723967 -0.052940374 -0.019837746 -0.084315335 -0.061817534
+ [9] -0.300042436 -0.039914091 -0.014650104  0.112653785 -0.063133119 -0.259615245 -0.021347855  0.093007817
+[17] -0.119394464  0.094684966  0.093476343  0.135901983  0.095310237 -0.011111229 -0.137529811  0.051671882
+[25] -0.033195719  0.028938990  0.002806637 -0.109479679  0.077586328 -0.060226875  0.147720441  0.008973396
+[33] -0.036932274 -0.140252817 -0.131203958 -0.023155842 -0.209330162 -0.031816301  0.206815151 -0.148297543
+[41]  0.008841813 -0.150781934 -0.064470245 -0.116828323  0.085783760  0.039740269 -0.129211724  0.019512690
+[49] -0.201341726  0.136745540  0.023317119 -0.074403495  0.033901552 -0.033901552 -0.005532518  0.076087387
+[57]  0.162197541 -0.048134641 -0.292279782
+> adf.test(lnDBstock)
+Augmented Dickey-Fuller Test
+data:  lnDBstock
+Dickey-Fuller = -2.3683, Lag order = 3, p-value = 0.4259
+alternative hypothesis: stationary
+> adf.test(difflnDBstock)
+Augmented Dickey-Fuller Test
+data:  difflnDBstock
+Dickey-Fuller = -4.3001, Lag order = 3, p-value = 0.01
+alternative hypothesis: stationary
+Warning message:
+In adf.test(difflnDBstock) : p-value smaller than printed p-value
+> #Time series and auto.arima
+> arimaDB<-ts(lnDBstock, frequency = 12, start =c (2015, 04))
+> fitlnDBstock<-auto.arima(arimaDB)
+> fitlnDBstock
+Series: arimaDB 
+ARIMA(0,1,0) with drift 
+Coefficients:
+        drift
+      -0.0259
+s.e.   0.0146
+sigma^2 estimated as 0.01273:  log likelihood=45.51
+AIC=-87.02   AICc=-86.81   BIC=-82.87
+> plot(arimaDB, type="l")
+> title("DB Group price")
+> exp(lnDBstock)
+ [1] 30.090218 28.318550 29.003355 33.676971 28.907188 27.416634 26.878109 24.704782 23.223839 17.203913 16.530758
+[12] 16.290346 18.232878 17.117363 13.203449 12.924571 14.184333 12.587995 13.838140 15.194065 17.405859 19.146446
+[23] 18.934883 16.501909 17.377008 16.809635 17.303196 17.351828 15.552450 16.807152 15.824789 18.343918 18.509266
+[34] 17.838146 15.503819 13.597452 13.286209 10.776808 10.439327 12.837817 11.068439 11.166738  9.603788  9.004166
+[45]  8.011348  8.728930  9.082805  7.981859  8.139136  6.654826  7.630000  7.810000  7.250000  7.500000  7.250000
+[56]  7.210000  7.780000  9.150000  8.720000  6.510000
+> #Forecasted value from ARIMA
+> 
+> FCDB_ln<-forecast(fitlnDBstock, h=9)
+> FCDB_ln
+         Point Forecast    Lo 80    Hi 80     Lo 95    Hi 95
+Apr 2020       1.847393 1.702779 1.992006 1.6262257 2.068560
+May 2020       1.821446 1.616932 2.025960 1.5086685 2.134223
+Jun 2020       1.795499 1.545021 2.045977 1.4124266 2.178572
+Jul 2020       1.769552 1.480326 2.058779 1.3272183 2.211886
+Aug 2020       1.743606 1.420240 2.066971 1.2490611 2.238150
+Sep 2020       1.717659 1.363430 2.071888 1.1759124 2.259405
+Oct 2020       1.691712 1.309101 2.074323 1.1065591 2.276865
+Nov 2020       1.665765 1.256737 2.074793 1.0402104 2.291320
+Dec 2020       1.639818 1.205978 2.073658 0.9763174 2.303319
+> plot(FCDB_ln)
+> 
+> FCDBextracted<-as.numeric(FCDB_ln$mean)
+> finalFCDB=exp(FCDBextracted)
+> finalFCDB
+[1] 6.343259 6.180789 6.022480 5.868226 5.717922 5.571469 5.428766 5.289719 5.154233
+> 
+> 
+> Forecasted_DB_stock_price<-finalFCDB
+> #Ljung Box
+> 
+> Box.test(fitlnDBstock$residuals, lag=10, type="Ljung-Box")
+Box-Ljung test
+data:  fitlnDBstock$residuals
+X-squared = 4.2803, df = 10, p-value = 0.9338
+> #####GRupomexico######
+> 
+> #Plot and convert to ln format
+> lnGMEstock=log(APortfolio$Grupo.Mexico)
+> lnGMEstock
+ [1] 3.684545 3.691489 3.690416 3.617768 3.550411 3.549924 3.533167 3.429847 3.448497 3.403465 3.484797 3.575516
+[13] 3.624934 3.557100 3.613130 3.662041 3.701262 3.711138 3.693895 3.883633 4.001836 3.991338 3.965421 3.890004
+[25] 3.873703 3.781638 3.798497 3.925570 3.941820 3.890318 4.003121 3.936634 4.050334 4.066836 4.041670 3.988405
+[37] 4.014808 3.787312 3.927911 3.966354 3.921328 3.898655 3.757975 3.647791 3.629816 3.754063 3.807221 3.922954
+[49] 3.963896 3.835874 3.894264 3.810831 3.795141 3.794707 3.888361 3.896420 3.916912 3.894755 3.816172 3.689572
+> #ACF, PACF and Dickey-Fuller test
+> acf(lnGMEstock, lag.max = 20)
+> pacf(lnGMEstockk, lag.max = 20)
+Error in pacf(lnGMEstockk, lag.max = 20) : object 'lnGMEstockk' not found
+> difflnGMEstock=diff(lnGMEstock, 1)
+> difflnGMEstock
+ [1]  0.0069438446 -0.0010731228 -0.0726479125 -0.0673568210 -0.0004875190 -0.0167574032 -0.1033193870  0.0186503538
+ [9] -0.0450328078  0.0813324641  0.0907185241  0.0494186660 -0.0678344612  0.0560298660  0.0489115251  0.0392209601
+[17]  0.0098762780 -0.0172436920  0.1897379634  0.1182029139 -0.0104979091 -0.0259166283 -0.0754170473 -0.0163012410
+[25] -0.0920647035  0.0168589111  0.1270733579  0.0162494142 -0.0515019533  0.1128027131 -0.0664867779  0.1137006159
+[33]  0.0165015276 -0.0251663686 -0.0532649935  0.0264029813 -0.2274958951  0.1405989981  0.0384428984 -0.0450258616
+[41] -0.0226724073 -0.1406799044 -0.1101844706 -0.0179747036  0.1242463751  0.0531587890  0.1157324057  0.0409419030
+[49] -0.1280215753  0.0583901958 -0.0834328531 -0.0156907299 -0.0004334134  0.0936536825  0.0080590953  0.0204916650
+[57] -0.0221563609 -0.0785834836 -0.1266002419
+> adf.test(lnGMEstock)
+Augmented Dickey-Fuller Test
+data:  lnGMEstock
+Dickey-Fuller = -1.8224, Lag order = 3, p-value = 0.6465
+alternative hypothesis: stationary
+> adf.test(difflnGMEstock)
+Augmented Dickey-Fuller Test
+data:  difflnGMEstock
+Dickey-Fuller = -4.5847, Lag order = 3, p-value = 0.01
+alternative hypothesis: stationary
+Warning message:
+In adf.test(difflnGMEstock) : p-value smaller than printed p-value
+> #Time series and auto.arima
+> arimaGME<-ts(lnGMEstock, frequency = 12, start =c (2015, 04))
+> fitlnGMEstock<-auto.arima(arimaGME)
+> fitlnGMEstock
+Series: arimaGME 
+ARIMA(0,1,0) 
+sigma^2 estimated as 0.0063:  log likelihood=65.77
+AIC=-129.53   AICc=-129.46   BIC=-127.46
+> plot(arimaGME, type="l")
+> title("Grupo Mexico price")
+> exp(lnGMEstock)
+ [1] 39.82701 40.10453 40.06152 37.25433 34.82764 34.81067 34.23219 30.87192 31.45310 30.06810 32.61581 35.71303
+[13] 37.52226 35.06137 37.08193 38.94075 40.49839 40.90035 40.20112 48.60045 54.69847 54.12725 52.74248 48.91109
+[25] 48.12024 43.88788 44.63405 50.68198 51.51226 48.92644 54.76880 51.24581 57.41666 58.37198 56.92130 53.96872
+[37] 55.41263 44.13759 50.80073 52.79168 50.46741 49.33606 42.86156 38.38977 37.70589 42.69418 45.02516 50.54954
+[49] 52.66208 46.33391 49.11990 45.18800 44.48450 44.46522 48.83079 49.22591 50.24504 49.14403 45.42997 40.02770
+> #Forecasted value from ARIMA
+> 
+> FCGME_ln<-forecast(fitlnGMEstock, h=9)
+> FCGME_ln
+         Point Forecast    Lo 80    Hi 80    Lo 95    Hi 95
+Apr 2020       3.689572 3.587853 3.791291 3.534006 3.845138
+May 2020       3.689572 3.545719 3.833424 3.469568 3.909575
+Jun 2020       3.689572 3.513389 3.865754 3.420124 3.959020
+Jul 2020       3.689572 3.486134 3.893010 3.378440 4.000703
+Aug 2020       3.689572 3.462121 3.917022 3.341716 4.037428
+Sep 2020       3.689572 3.440412 3.938731 3.308515 4.070629
+Oct 2020       3.689572 3.420448 3.958695 3.277983 4.101160
+Nov 2020       3.689572 3.401867 3.977277 3.249565 4.129578
+Dec 2020       3.689572 3.384415 3.994729 3.222874 4.156269
+> plot(FCGME_ln)
+> 
+> FCGMEextracted<-as.numeric(FCGME_ln$mean)
+> finalFCGME=exp(FCGMEextracted)
+> finalFCGME
+[1] 40.0277 40.0277 40.0277 40.0277 40.0277 40.0277 40.0277 40.0277 40.0277
+> 
+> 
+> Forecasted_GME_stock_price<-finalFCGME
+> 
+> #Ljung Box
+> 
+> Box.test(fitlnGMEstock$residuals, lag=10, type="Ljung-Box")
+Box-Ljung test
+data:  fitlnGMEstock$residuals
+X-squared = 11.206, df = 10, p-value = 0.3417
+> #####Huawei######
+> 
+> #Plot and convert to ln format
+> lnHWstock=log(APortfolio$Huawei)
+> lnHWstock
+ [1] 2.2690435 2.2690435 2.3951043 2.5787645 2.5327794 2.5327794 2.5327794 2.5327794 2.5327794 2.5268797 2.4968474
+[12] 2.6050088 2.4515268 2.4308987 2.4968474 2.5169688 2.6520428 2.5682222 2.5787645 2.6031830 2.5460246 2.4373908
+[23] 2.4502500 2.4138191 2.3086550 2.2614338 2.2310171 2.1015851 2.2094877 2.1919241 2.1466164 2.1466164 2.1558436
+[34] 2.1040065 1.9914995 2.0049406 1.9654528 1.8677789 1.7526721 1.7526721 1.7613003 1.7613003 1.7613003 1.4109870
+[45] 1.3711807 1.2178757 1.4632554 1.4586150 1.3912819 1.2753628 1.2354715 1.1216776 1.1184149 1.1631508 0.9555114
+[56] 1.2029723 1.1568812 1.0952734 1.0079579 1.0919233
+> #ACF, PACF and Dickey-Fuller test
+> acf(lnHWstock, lag.max = 20)
+> pacf(lnHWstock, lag.max = 20)
+> difflnHWstock=diff(lnHWstock, 1)
+> difflnHWstock
+ [1]  0.000000000  0.126060780  0.183660197 -0.045985078  0.000000000  0.000000000  0.000000000  0.000000000
+ [9] -0.005899668 -0.030032334  0.108161364 -0.153482000 -0.020628063  0.065948698  0.020121381  0.135074007
+[17] -0.083820569  0.010542261  0.024418484 -0.057158331 -0.108633867  0.012859212 -0.036430900 -0.105164052
+[25] -0.047221260 -0.030416650 -0.129432069  0.107902689 -0.017563633 -0.045307682  0.000000000  0.009227202
+[33] -0.051837167 -0.112506913  0.013441077 -0.039487828 -0.097673935 -0.115106783  0.000000000  0.008628181
+[41]  0.000000000  0.000000000 -0.350313288 -0.039806250 -0.153305014  0.245379693 -0.004640380 -0.067333120
+[49] -0.115919102 -0.039891329 -0.113793910 -0.003262646  0.044735894 -0.207639365  0.247460859 -0.046091107
+[57] -0.061607809 -0.087315467  0.083965380
+> adf.test(lnHWstock)
+Augmented Dickey-Fuller Test
+data:  lnHWstock
+Dickey-Fuller = -2.4085, Lag order = 3, p-value = 0.4097
+alternative hypothesis: stationary
+> adf.test(difflnHWstock)
+Augmented Dickey-Fuller Test
+data:  difflnHWstock
+Dickey-Fuller = -4.8843, Lag order = 3, p-value = 0.01
+alternative hypothesis: stationary
+Warning message:
+In adf.test(difflnHWstock) : p-value smaller than printed p-value
+> #Time series and auto.arima
+> arimaHW<-ts(lnHWstock, frequency = 12, start =c (2015, 04))
+> fitlnHWstock<-auto.arima(arimaHW)
+> fitlnHWstock
+Series: arimaHW 
+ARIMA(0,1,0) with drift 
+Coefficients:
+        drift
+      -0.0200
+s.e.   0.0127
+sigma^2 estimated as 0.009736:  log likelihood=53.43
+AIC=-102.86   AICc=-102.64   BIC=-98.7
+> plot(arimaHW, type="l")
+> title("Huawei price")
+> exp(lnHWstock)
+ [1]  9.670147  9.670147 10.969342 13.180843 12.588446 12.588446 12.588446 12.588446 12.588446 12.514397 12.144148
+[12] 13.531344 11.606053 11.369095 12.144148 12.390980 14.182982 13.042617 13.180843 13.506661 12.756292 11.443144
+[23] 11.591244 11.176564 10.060884  9.596839  9.309330  8.179124  9.111048  8.952422  8.555860  8.555860  8.635172
+[34]  8.198953  7.326512  7.425653  7.138144  6.473901  5.770000  5.770000  5.820000  5.820000  5.820000  4.100000
+[45]  3.940000  3.380000  4.320000  4.300000  4.020000  3.580000  3.440000  3.070000  3.060000  3.200000  2.600000
+[56]  3.330000  3.180000  2.990000  2.740000  2.980000
+> #Forecasted value from ARIMA
+> 
+> FCHW_ln<-forecast(fitlnHWstock, h=9)
+> FCHW_ln
+         Point Forecast     Lo 80    Hi 80     Lo 95    Hi 95
+Apr 2020      1.0719721 0.9455206 1.198424 0.8785813 1.265363
+May 2020      1.0520209 0.8731915 1.230850 0.7785250 1.325517
+Jun 2020      1.0320697 0.8130493 1.251090 0.6971070 1.367033
+Jul 2020      1.0121185 0.7592156 1.265021 0.6253368 1.398900
+Aug 2020      0.9921674 0.7094133 1.274921 0.5597323 1.424602
+Sep 2020      0.9722162 0.6624746 1.281958 0.4985073 1.445925
+Oct 2020      0.9522650 0.6177058 1.286824 0.4406009 1.463929
+Nov 2020      0.9323138 0.5746550 1.289973 0.3853219 1.479306
+Dec 2020      0.9123626 0.5330082 1.291717 0.3321901 1.492535
+> plot(FCHW_ln)
+> 
+> FCHWextracted<-as.numeric(FCHW_ln$mean)
+> finalFCHW=exp(FCHWextracted)
+> finalFCHW
+[1] 2.921135 2.863432 2.806869 2.751424 2.697074 2.643797 2.591573 2.540380 2.490199
+> 
+> 
+> Forecasted_HW_stock_price<-finalFCHW
+> 
+> #Ljung Box
+> 
+> Box.test(fitlnHWstock$residuals, lag=10, type="Ljung-Box")
+Box-Ljung test
+data:  fitlnHWstock$residuals
+X-squared = 8.5123, df = 10, p-value = 0.5789
+> #####ROyal Dutch Shell######
+> 
+> #Plot and convert to ln format
+> lnRDSstock=log(APortfolio$Royal.Dutch.Shell)
+> lnRDSstock
+ [1] 3.846820 3.784540 3.742549 3.756402 3.662346 3.569638 3.673756 3.620152 3.557076 3.514705 3.549882 3.644192
+[13] 3.725375 3.635822 3.792347 3.759860 3.712259 3.751986 3.742094 3.777034 3.862338 3.853675 3.809745 3.841074
+[25] 3.809967 3.847858 3.831891 3.893002 3.871515 3.986892 4.030996 4.039831 4.089383 4.141312 4.027311 4.062318
+[37] 4.162293 4.161049 4.178129 4.155719 4.102824 4.167787 4.091344 4.033711 4.014346 4.060957 4.073773 4.093680
+[49] 4.108272 4.076488 4.135708 4.100567 3.971057 4.059424 4.032178 4.020443 4.076178 3.957895 3.778497 3.446489
+> #ACF, PACF and Dickey-Fuller test
+> acf(lnRDSstock, lag.max = 20)
+> pacf(lnRDSstock, lag.max = 20)
+> difflnRDSstock=diff(lnRDSstock, 1)
+> difflnRDSstock
+ [1] -0.062280452 -0.041991237  0.013852854 -0.094055560 -0.092707624  0.104117150 -0.053603415 -0.063076575
+ [9] -0.042370558  0.035177341  0.094309153  0.081183530 -0.089553354  0.156524817 -0.032486354 -0.047601040
+[17]  0.039726991 -0.009891642  0.034939430  0.085303749 -0.008662585 -0.043929720  0.031328975 -0.031107594
+[25]  0.037890884 -0.015966336  0.061110867 -0.021487501  0.115377526  0.044104091  0.008834770  0.049551469
+[33]  0.051929975 -0.114001549  0.035007355  0.099974447 -0.001243466  0.017079610 -0.022410374 -0.052894956
+[41]  0.064962986 -0.076442468 -0.057633036 -0.019364928  0.046610898  0.012815689  0.019907003  0.014591987
+[49] -0.031783496  0.059219365 -0.035140136 -0.129510695  0.088366983 -0.027245859 -0.011734478  0.055734804
+[57] -0.118283459 -0.179397950 -0.332007417
+> adf.test(lnRDSstock)
+Augmented Dickey-Fuller Test
+data:  lnRDSstock
+Dickey-Fuller = 0.67222, Lag order = 3, p-value = 0.99
+alternative hypothesis: stationary
+Warning message:
+In adf.test(lnRDSstock) : p-value greater than printed p-value
+> adf.test(difflnRDSstock)
+Augmented Dickey-Fuller Test
+data:  difflnRDSstock
+Dickey-Fuller = -1.5931, Lag order = 3, p-value = 0.7391
+alternative hypothesis: stationary
+> #Time series and auto.arima
+> arimaRDS<-ts(lnRDSstock, frequency = 12, start =c (2015, 04))
+> fitlnRDSstock<-auto.arima(arimaRDS)
+> fitlnRDSstock
+Series: arimaRDS 
+ARIMA(0,1,0) 
+sigma^2 estimated as 0.00629:  log likelihood=65.82
+AIC=-129.63   AICc=-129.56   BIC=-127.55
+> plot(arimaRDS, type="l")
+> title("Royal Dutch Shell price")
+> exp(lnRDSstock)
+ [1] 46.84388 44.01542 42.20542 42.79416 38.95262 35.50375 39.39960 37.34325 35.06052 33.60601 34.80922 38.25183
+[13] 41.48679 37.93301 44.36037 42.94242 40.94620 42.60562 42.18626 43.68627 47.57644 47.16608 45.13894 46.57549
+[25] 45.14894 46.89249 46.14974 49.05794 48.01506 53.88716 56.31699 56.81674 59.70301 62.88530 56.10982 58.10887
+[37] 64.21859 64.13879 65.24366 63.79779 60.51090 64.57237 59.82024 56.47008 55.38707 58.02982 58.77830 59.96012
+[49] 60.84147 58.93813 62.53382 60.37453 53.04055 57.94091 56.38357 55.72581 58.91986 52.34700 43.75023 31.39000
+> #Forecasted value from ARIMA
+> 
+> FCRDS_ln<-forecast(fitlnRDSstock, h=9)
+> FCRDS_ln
+         Point Forecast    Lo 80    Hi 80    Lo 95    Hi 95
+Apr 2020       3.446489 3.344854 3.548125 3.291051 3.601927
+May 2020       3.446489 3.302755 3.590224 3.226667 3.666312
+Jun 2020       3.446489 3.270451 3.622527 3.177263 3.715716
+Jul 2020       3.446489 3.243218 3.649760 3.135613 3.757366
+Aug 2020       3.446489 3.219225 3.673753 3.098919 3.794060
+Sep 2020       3.446489 3.197534 3.695445 3.065745 3.827233
+Oct 2020       3.446489 3.177587 3.715392 3.035239 3.857740
+Nov 2020       3.446489 3.159021 3.733958 3.006844 3.886135
+Dec 2020       3.446489 3.141583 3.751396 2.980175 3.912804
+> plot(FCRDS_ln)
+> 
+> FCRDSextracted<-as.numeric(FCRDS_ln$mean)
+> finalFCRDS=exp(FCRDSextracted)
+> finalFCRDS
+[1] 31.39 31.39 31.39 31.39 31.39 31.39 31.39 31.39 31.39
+> 
+> 
+> Forecasted_RDS_stock_price<-finalFCRDS
+> 
+> #Ljung Box
+> 
+> Box.test(fitlnRDSstock$residuals, lag=10, type="Ljung-Box")
+Box-Ljung test
+data:  fitlnRDSstock$residuals
+X-squared = 3.7444, df = 10, p-value = 0.9581
+> #####Samsung######
+> 
+> #Plot and convert to ln format
+> lnSamstock=log(APortfolio$Samsung)
+> lnSamstock
+ [1]  5.611209  5.535354  5.505060  5.477271  5.392788  5.433280  5.623798  5.557509  5.538640  7.007412  7.031468
+[12]  7.139202  7.086785  7.123841  7.221822  7.335177  7.386470  7.372797  7.398130  7.461371  7.492941  9.028852
+[23]  9.002663  9.072003  9.335122  9.336913  9.398511  9.571002  9.531217  9.632944  9.849974  9.769084  9.772229
+[34] 14.276124 10.283307 10.328183 10.853867 10.809501 10.726248 10.725047 10.771518 10.729362 10.645630 10.632573
+[45] 10.554321 10.739652 10.716638 10.706610 10.733130 10.657259 10.757903 10.722165 10.691945 10.800595 10.827746
+[56] 10.825760 10.929529 10.940224 10.900436 10.860920
+> #ACF, PACF and Dickey-Fuller test
+> acf(lnSamstock, lag.max = 20)
+> pacf(lnSamstock, lag.max = 20)
+> difflnSamstock=diff(lnSamstock, 1)
+> difflnSamstock
+ [1] -0.075855190 -0.030293835 -0.027788517 -0.084482794  0.040491357  0.190518219 -0.066289140 -0.018868616
+ [9]  1.468771537  0.024055948  0.107734693 -0.052417049  0.037055777  0.097980566  0.113355053  0.051293302
+[17] -0.013673350  0.025333471  0.063241097  0.031569734  1.535910940 -0.026188898  0.069339607  0.263119172
+[25]  0.001791272  0.061598107  0.172490803 -0.039785312  0.101727110  0.217030641 -0.080890245  0.003144670
+[33]  4.503895156 -3.992817325  0.044876680  0.525683666 -0.044365963 -0.083253088 -0.001201364  0.046470969
+[41] -0.042155927 -0.083731758 -0.013056537 -0.078252167  0.185330990 -0.023014714 -0.010027939  0.026520891
+[49] -0.075871123  0.100643526 -0.035737425 -0.030220543  0.108650552  0.027150989 -0.001986098  0.103768792
+[57]  0.010695289 -0.039788250 -0.039515960
+> adf.test(lnSamstock)
+Augmented Dickey-Fuller Test
+data:  lnSamstock
+Dickey-Fuller = -1.1051, Lag order = 3, p-value = 0.9141
+alternative hypothesis: stationary
+> adf.test(difflnSamstock)
+Augmented Dickey-Fuller Test
+data:  difflnSamstock
+Dickey-Fuller = -5.3309, Lag order = 3, p-value = 0.01
+alternative hypothesis: stationary
+Warning message:
+In adf.test(difflnSamstock) : p-value smaller than printed p-value
+> #Time series and auto.arima
+> arimaSam<-ts(lnSamstock, frequency = 12, start =c (2015, 04))
+> fitlnSamstock<-auto.arima(arimaSam)
+> fitlnSamstock
+Series: arimaSam 
+ARIMA(0,1,1)(1,0,0)[12] with drift 
+Coefficients:
+          ma1    sar1   drift
+      -0.6427  0.2429  0.0934
+s.e.   0.0893  0.1193  0.0396
+sigma^2 estimated as 0.4672:  log likelihood=-60.36
+AIC=128.72   AICc=129.46   BIC=137.03
+> plot(arimaSam, type="l")
+> title("Samsung price")
+> exp(lnSamstock)
+ [1]     273.4746     253.4974     245.9332     239.1931     219.8155     228.8988     276.9392     259.1764
+ [9]     254.3319    1104.7914    1131.6904    1260.4227    1196.0568    1241.2090    1368.9807    1533.2988
+[17]    1613.9988    1592.0802    1632.9283    1739.5319    1795.3245    8340.2793    8124.6919    8708.0459
+[25]   11329.0088   11349.3203   12070.3975   14342.7812   13783.3516   15259.2910   18957.8711   17484.7480
+[33]   17539.8184 1585046.1250   29240.4043   30582.5059   51733.8242   49488.7734   45535.5234   45480.8516
+[41]   47644.2695   45677.5273   42008.6133   41463.6914   38342.7695   46150.0000   45100.0000   44650.0000
+[49]   45850.0000   42500.0000   47000.0000   45350.0000   44000.0000   49050.0000   50400.0000   50300.0000
+[57]   55800.0000   56400.0000   54200.0000   52100.0000
+> #Forecasted value from ARIMA
+> 
+> FCSam_ln<-forecast(fitlnSamstock, h=9)
+> FCSam_ln
+         Point Forecast    Lo 80    Hi 80    Lo 95    Hi 95
+Apr 2020       11.08340 10.20740 11.95941 9.743665 12.42314
+May 2020       11.13568 10.20544 12.06592 9.713003 12.55836
+Jun 2020       11.23083 10.24936 12.21231 9.729794 12.73187
+Jul 2020       11.29286 10.26269 12.32303 9.717349 12.86837
+Aug 2020       11.35623 10.27956 12.43289 9.709609 13.00284
+Sep 2020       11.45333 10.33209 12.57456 9.738548 13.16810
+Oct 2020       11.53063 10.36653 12.69472 9.750298 13.31096
+Nov 2020       11.60085 10.39542 12.80629 9.757300 13.44441
+Dec 2020       11.69677 10.45136 12.94217 9.792088 13.60145
+> plot(FCSam_ln)
+> 
+> FCSamextracted<-as.numeric(FCSam_ln$mean)
+> finalFCSam=exp(FCSamextracted)
+> finalFCSam
+[1]  65081.91  68574.71  75420.46  80246.64  85496.14  94214.20 101786.10 109190.97 120182.60
+> 
+> 
+> Forecasted_Samsung_stock_price<-finalFCSam
+> 
+> #Ljung Box
+> 
+> Box.test(fitlnSamstock$residuals, lag=10, type="Ljung-Box")
+Box-Ljung test
+data:  fitlnSamstock$residuals
+X-squared = 1.6438, df = 10, p-value = 0.9984
+> #####TATA######
+> 
+> #Plot and convert to ln format
+> lnTATAstock=log(APortfolio$TATA)
+> lnTATAstock
+ [1] 3.717778 3.645032 3.539672 3.389382 3.231177 3.220855 3.386343 3.451790 3.382955 3.217658 3.101025 3.368601
+[13] 3.413367 3.510829 3.545457 3.632685 3.707947 3.688379 3.674020 3.498627 3.537766 3.662535 3.514228 3.573749
+[25] 3.574310 3.606313 3.496810 3.539219 3.396520 3.442659 3.489208 3.440098 3.498627 3.432696 3.332919 3.246491
+[37] 3.223664 3.038792 2.972975 2.901422 2.920470 2.731767 2.502255 2.501436 2.499795 2.570320 2.525729 2.530517
+[49] 2.734368 2.526528 2.457878 2.273156 2.106570 2.127041 2.491551 2.417698 2.547099 2.495682 2.214846 1.515127
+> #ACF, PACF and Dickey-Fuller test
+> acf(lnTATAstock, lag.max = 20)
+> pacf(lnTATAstock, lag.max = 20)
+> difflnTATAstock=diff(lnTATAstock, 1)
+> difflnTATAstock
+ [1] -0.0727456368 -0.1053603880 -0.1502901208 -0.1582047150 -0.0103217105  0.1654874367  0.0654469424 -0.0688345053
+ [9] -0.1652972950 -0.1166327965  0.2675757644  0.0447660284  0.0974624723  0.0346277772  0.0872277765  0.0752616911
+[17] -0.0195671878 -0.0143597379 -0.1753930642  0.0391392684  0.1247696577 -0.1483070495  0.0595207993  0.0005607403
+[25]  0.0320028415 -0.1095022995  0.0424081652 -0.1426988249  0.0461393459  0.0465490265 -0.0491106353  0.0585289643
+[33] -0.0659305106 -0.0997774755 -0.0864275101 -0.0228266494 -0.1848726663 -0.0658164798 -0.0715535863  0.0190480861
+[41] -0.1887030074 -0.2295114396 -0.0008193364 -0.0016406895  0.0705242654 -0.0445908833  0.0047885167  0.2038503484
+[49] -0.2078391849 -0.0686503471 -0.1847216951 -0.1665860732  0.0204703114  0.3645106720 -0.0738532924  0.1294007699
+[57] -0.0514169471 -0.2808355443 -0.6997189457
+> adf.test(lnTATAstock)
+Augmented Dickey-Fuller Test
+data:  lnTATAstock
+Dickey-Fuller = -1.0683, Lag order = 3, p-value = 0.9199
+alternative hypothesis: stationary
+> adf.test(difflnTATAstock)
+Augmented Dickey-Fuller Test
+data:  difflnTATAstock
+Dickey-Fuller = -3.8988, Lag order = 3, p-value = 0.0202
+alternative hypothesis: stationary
+> #Time series and auto.arima
+> arimaTATA<-ts(lnTATAstock, frequency = 12, start =c (2015, 04))
+> fitlnTATAstock<-auto.arima(arimaTATA)
+> fitlnTATAstock
+Series: arimaTATA 
+ARIMA(1,1,0) with drift 
+Coefficients:
+         ar1    drift
+      0.2622  -0.0415
+s.e.  0.1541   0.0258
+sigma^2 estimated as 0.02198:  log likelihood=29.89
+AIC=-53.77   AICc=-53.33   BIC=-47.54
+> plot(arimaTATA, type="l")
+> title("TATA Group price")
+> exp(lnTATAstock)
+ [1] 41.17280 38.28400 34.45561 29.64761 25.30943 25.04953 29.55765 31.55682 29.45769 24.96957 22.22072 29.03787
+[13] 30.36731 33.47602 34.65552 37.81421 40.77000 39.98000 39.41000 33.07000 34.39000 38.96000 33.59000 35.65000
+[25] 35.67000 36.83000 33.01000 34.44000 29.86000 31.27000 32.76000 31.19000 33.07000 30.96000 28.02000 25.70000
+[37] 25.12000 20.88000 19.55000 18.20000 18.55000 15.36000 12.21000 12.20000 12.18000 13.07000 12.50000 12.56000
+[49] 15.40000 12.51000 11.68000  9.71000  8.22000  8.39000 12.08000 11.22000 12.77000 12.13000  9.16000  4.55000
+> #Forecasted value from ARIMA
+> 
+> FCTATA_ln<-forecast(fitlnTATAstock, h=9)
+> FCTATA_ln
+         Point Forecast     Lo 80    Hi 80        Lo 95    Hi 95
+Apr 2020      1.3010519 1.1110562 1.491048  1.010478597 1.591625
+May 2020      1.2143126 0.9083576 1.520268  0.746394816 1.682230
+Jun 2020      1.1609609 0.7640301 1.557892  0.553907612 1.768014
+Jul 2020      1.1163634 0.6438769 1.588850  0.393757632 1.838969
+Aug 2020      1.0740613 0.5361077 1.612015  0.251332255 1.896790
+Sep 2020      1.0323611 0.4359838 1.628738  0.120280742 1.944441
+Oct 2020      0.9908187 0.3412269 1.640410 -0.002646166 1.984283
+Nov 2020      0.9493176 0.2505463 1.648089 -0.119360858 2.017996
+Dec 2020      0.9078274 0.1631158 1.652539 -0.231110732 2.046765
+> plot(FCTATA_ln)
+> 
+> FCTATAextracted<-as.numeric(FCTATA_ln$mean)
+> finalFCTATA=exp(FCTATAextracted)
+> finalFCTATA
+[1] 3.673158 3.367978 3.193000 3.053729 2.927244 2.807687 2.693439 2.583946 2.478931
+> 
+> 
+> Forecasted_TATA_stock_price<-finalFCTATA
+> 
+> #Ljung Box
+> 
+> Box.test(fitlnTATAstock$residuals, lag=10, type="Ljung-Box")
+Box-Ljung test
+data:  fitlnTATAstock$residuals
+X-squared = 6.2736, df = 10, p-value = 0.7918
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##########multiple regression model, data of 2015-2018##########
+###hypothesis: if stock prices depend on economic variables: 
+    #whether stock prices have positive relationship with political stability, GDP 
+    #stock prices have negative relationship with unemployment rate, inflation rate
+    #dummy variable is european countries: if companies are in Europe, they have higher prices
+
+
+myvariable<-lm(formula=EcoV$Stockprices~EcoV$`GDP(%)`+EcoV$Unemployment+EcoV$`Inflation rate`+EcoV$`Political stability`+EcoV$`EU countries`)
+
+myvariable
+
+summary(myvariable)
+
+Call:
+lm(formula = EcoV$Stockprices ~ EcoV$`GDP(%)` + EcoV$Unemployment + 
+    EcoV$`Inflation rate` + EcoV$`Political stability` + EcoV$`EU countries`)
+Residuals:
+   Min     1Q Median     3Q    Max 
+ -4868  -2844  -1420    455  32253 
+Coefficients:
+                           Estimate Std. Error t value Pr(>|t|)  
+(Intercept)                 14363.1     7628.5   1.883   0.0683 .
+EcoV$`GDP(%)`                -985.0      845.1  -1.166   0.2519  
+EcoV$Unemployment           -1163.4     1130.4  -1.029   0.3106  
+EcoV$`Inflation rate`       -1452.5      875.3  -1.659   0.1062  
+EcoV$`Political stability`  -1320.4     2684.4  -0.492   0.6260  
+EcoV$`EU countries`         -5150.3     2894.1  -1.780   0.0841 .
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 6597 on 34 degrees of freedom
+Multiple R-squared:  0.1258,	Adjusted R-squared:  -0.002737 
+F-statistic: 0.9787 on 5 and 34 DF,  p-value: 0.4448
+
+
+#is there multicollinearity among variables which reduces the accuracy of estimate of coefficients?
+
+
+library(Hmisc)
+
+multicollinearity<-cor(EcoV[,unlist(lapply(EcoV, is.numeric))], method=c("pearson"))
+
+Multicollinearity
+
+                        YEAR      Stockprices   GDP(%) Unemployment   Inflation rate   Political stability EU countries
+
+YEAR                 1.000000000  0.22400966  0.006798497  -0.31994342      0.2883073          0.02117960   0.00000000
+Stockprices          0.224009658  1.00000000 -0.066454749  -0.04139303     -0.1313123          0.03527874  -0.14686497
+GDP(%)               0.006798497 -0.06645475  1.000000000  -0.34707257      0.2548146         -0.71336893  -0.43418449
+Unemployment        -0.319943423 -0.04139303 -0.347072570   1.00000000     -0.3310437          0.33693291   0.09595264
+Inflation rate       0.288307346 -0.13131234  0.254814593  -0.33104367      1.0000000         -0.60899511  -0.48557340
+Political stability  0.021179597  0.03527874 -0.713368931   0.33693291     -0.6089951          1.00000000   0.54984520
+EU countries         0.000000000 -0.14686497 -0.434184489   0.09595264     -0.4855734          0.54984520   1.00000000
+
+
+
+
+library(corrplot)
+
+corrplot(multicollinearity, order = "hclust")
+
+
+
+
+chart.Correlation(multicollinearity, histogram = TRUE, pch = 19)
+
+
+
+
+
+
+
+> ###########Create new portfolio with 5 assets###########
+> 
+> 
+> #create portfolio with assets in myportfolio
+> 
+> newport<-APortfolio[,1:5]
+> 
+> ES(newport, p=0.99, portfolio_method = "component")
+no weights passed in, assuming equal weighted portfolio
+$MES
+[1] -8.052329
+$contribution
+      AAPL        AIA        BHP         CS         DB 
+ 19.080248  -0.401150  -3.668678  -8.670647 -14.392101 
+$pct_contrib_MES
+       AAPL         AIA         BHP          CS          DB 
+-2.36953171  0.04981789  0.45560463  1.07678752  1.78732167 
+> 
+> 
+> 
+> print.default(juale)
+$assets
+                AAPL      AIA      BHP        CS        DB
+2015-04-01 115.17048 47.98802 39.06343 20.688709 30.090218
+2015-05-01 119.89141 47.29321 33.99104 21.809320 28.318550
+2015-06-01 115.91030 47.32805 31.00550 22.740356 29.003355
+2015-07-01 112.09375 47.09491 29.22331 24.264620 33.676971
+2015-08-01 104.34978 39.96073 28.05043 22.451984 28.907188
+2015-09-01 102.38999 37.49160 24.08239 21.323202 27.416634
+2015-10-01 110.93024 42.68706 25.96645 20.598150 26.878109
+2015-11-01 109.81628 43.34235 21.06370 18.167566 24.704782
+2015-12-01  98.12967 43.62318 20.33736 17.870955 23.223839
+2016-01-01  90.74618 40.11273 17.29781 14.993410 17.203913
+2016-02-01  90.14021 37.16396 17.85046 11.228211 16.530758
+2016-03-01 102.15836 41.14246 20.44789 11.902073 16.290346
+2016-04-01  87.86423 43.71679 25.04390 12.811786 18.232878
+2016-05-01  93.60065 42.54664 21.55182 11.523027 17.117363
+2016-06-01  90.15322 43.89162 22.82240  9.508953 13.203449
+2016-07-01  98.27268 45.50145 23.72538 10.273225 12.924571
+2016-08-01 100.05500 46.44841 23.97310 11.588481 14.184333
+2016-09-01 107.18655 49.03274 27.93735 11.677351 12.587995
+2016-10-01 107.65112 46.55970 28.23567 12.352754 13.838140
+2016-11-01 104.78775 44.99027 30.26748 11.855088 15.194065
+2016-12-01 110.37668 41.61362 28.84844 12.717115 17.405859
+2017-01-01 115.64677 45.94144 33.29100 13.508046 19.146446
+2017-02-01 130.55174 46.65482 30.49323 13.410292 18.934883
+2017-03-01 137.50185 46.60726 29.28382 13.188119 16.501909
+2017-04-01 137.49226 51.22043 29.31794 13.561369 17.377008
+2017-05-01 146.21173 52.55207 28.89793 12.566039 16.809635
+2017-06-01 138.41538 54.89243 29.30970 13.581119 17.303196
+2017-07-01 142.94208 59.22224 34.30857 14.807158 17.351828
+2017-08-01 157.61783 57.77896 35.82388 14.122268 15.552450
+2017-09-01 148.70398 55.66395 33.37797 15.241245 16.807152
+2017-10-01 163.09967 56.72698 34.41304 15.164074 15.824789
+2017-11-01 165.81096 61.17237 34.89169 16.302343 18.343918
+2017-12-01 163.86999 64.40976 38.62019 17.218748 18.509266
+2018-01-01 162.12701 64.74800 41.16464 18.656055 17.838146
+2018-02-01 172.47844 63.34674 39.04847 17.710712 15.503819
+2018-03-01 163.12831 64.16817 37.31018 16.196234 13.597452
+2018-04-01 160.67818 68.32364 40.22234 16.176941 13.286209
+2018-05-01 181.68904 69.57996 42.82926 14.855390 10.776808
+2018-06-01 180.67184 66.96549 43.02714 14.583299 10.439327
+2018-07-01 185.72765 66.86788 44.96299 15.739770 12.837817
+2018-08-01 222.17241 66.08695 41.33221 14.651903 11.068439
+2018-09-01 221.10043 68.23452 42.88088 14.642102 11.166738
+2018-10-01 214.36185 58.20123 40.83027 12.672181  9.603788
+2018-11-01 174.90971 62.61413 39.22110 11.584313  9.004166
+2018-12-01 155.03711 63.74187 42.69583 10.643456  8.011348
+2019-01-01 163.58800 69.13541 45.25988 11.868531  8.728930
+2019-02-01 170.18303 76.98057 48.77798 12.064544  9.082805
+2019-03-01 187.49587 76.63734 50.41006 11.417704  7.981859
+2019-04-01 198.07736 78.40250 49.85432 13.034803  8.139136
+2019-05-01 172.80811 72.22444 48.87513 11.045281  6.654826
+2019-06-01 196.11522 83.54232 54.71265 11.970000  7.630000
+2019-07-01 211.09737 80.22046 51.71856 12.070000  7.810000
+2019-08-01 206.83656 75.60951 46.28590 11.680000  7.250000
+2019-09-01 222.77089 73.42800 46.49304 12.210000  7.500000
+2019-10-01 247.42816 78.45000 47.52112 12.380000  7.250000
+2019-11-01 265.81918 78.40000 50.06672 13.090000  7.210000
+2019-12-01 292.95471 81.80000 53.15642 13.450000  7.780000
+2020-01-01 308.77719 77.75000 49.65865 12.610000  9.150000
+2020-02-01 272.71277 76.90000 42.08014 11.280000  8.720000
+2020-03-01 254.81000 68.15000 35.99790  8.380000  6.510000
+$category_labels
+NULL
+$weight_seq
+NULL
+$constraints
+$constraints[[1]]
+$type
+[1] "weight_sum"
+$enabled
+[1] TRUE
+$message
+[1] FALSE
+$min_sum
+[1] 1
+$max_sum
+[1] 1
+$call
+add.constraint(portfolio = juale, type = "weight_sum", 
+    min_sum = 1, max_sum = 1)
+attr(,"class")
+[1] "weight_sum_constraint" "constraint"           
+$objectives
+list()
+$call
+portfolio.spec(assets = newport)
+attr(,"class")
+[1] "ts"
+attr(,"tsp")
+[1] 2015.250 2015.667   12.000
+> 
+> Return.portfolio(newport)
+           portfolio.returns
+2015-04-01          50.60017
+2015-05-01          73.48769
+2015-06-01          94.75371
+2015-07-01         104.30874
+2015-08-01         101.49418
+2015-09-01         101.36326
+2015-10-01         110.55772
+2015-11-01         109.68507
+2015-12-01          98.08945
+2016-01-01          90.73010
+2016-02-01          90.13290
+2016-03-01         102.15487
+2016-04-01          87.86321
+2016-05-01          93.60005
+2016-06-01          90.15297
+2016-07-01          98.27254
+2016-08-01         100.05493
+2016-09-01         107.18652
+2016-10-01         107.65111
+2016-11-01         104.78774
+2016-12-01         110.37667
+2017-01-01         115.64677
+2017-02-01         130.55174
+2017-03-01         137.50185
+2017-04-01         137.49226
+2017-05-01         146.21173
+2017-06-01         138.41537
+2017-07-01         142.94208
+2017-08-01         157.61783
+2017-09-01         148.70398
+2017-10-01         163.09967
+2017-11-01         165.81096
+2017-12-01         163.86999
+2018-01-01         162.12701
+2018-02-01         172.47844
+2018-03-01         163.12831
+2018-04-01         160.67818
+2018-05-01         181.68904
+2018-06-01         180.67184
+2018-07-01         185.72765
+2018-08-01         222.17241
+2018-09-01         221.10043
+2018-10-01         214.36185
+2018-11-01         174.90971
+2018-12-01         155.03711
+2019-01-01         163.58800
+2019-02-01         170.18303
+2019-03-01         187.49587
+2019-04-01         198.07736
+2019-05-01         172.80810
+2019-06-01         196.11522
+2019-07-01         211.09737
+2019-08-01         206.83656
+2019-09-01         222.77089
+2019-10-01         247.42816
+2019-11-01         265.81918
+2019-12-01         292.95471
+2020-01-01         308.77719
+2020-02-01         272.71277
+2020-03-01           0.00000
+> 
+> annualReturn(newport)
+           yearly.returns
+2015-12-01     -0.1479616
+2016-12-01     -0.2883920
+2017-12-01      0.3539823
+2018-12-01     -0.3818682
+2019-12-01      0.2636873
+2020-03-01     -0.3769517
+> 
+> 
+> 
+> 
+> alexjulia<-portfolio.spec(assets = newport)
+> 
+> #Add the full investment constraint that specifies the weights must sum to 1
+> 
+> alexjulia<-add.constraint(portfolio=alexjulia, type = "weight_sum", min_sum = 1, max_sum =1)
+> 
+> #Add box constraints to specify upper and lower bounds on the weights of the assets
+> 
+> alexjulia<-add.constraint(portfolio = alexjulia, type="box", min =0.05, max=0.2)
+> 
+> #Add postion limite constraint that we have a maximum number of 5 assets with non-zero positions, max short position is 2, max long position is 3
+> 
+> alexjulia<-add.constraint(portfolio = alexjulia, type="position_limit", max_pos=5, max_pos_long=3, max_pos_short=2)
+> 
+> #Add diversification constraint
+> alexjulia<-add.constraint(portfolio = alexjulia, type = "diversification", div_target=0.7)
+> 
+> #Add turnover rate constraint
+> alexjuliaalju<- add.constraint(portfolio=alexjulia, type="turnover", turnover_target=0.2)
+> 
+> #Add target return constraint to specify a target mean return
+> alexjulia <- add.constraint(portfolio=alexjulia, type="return", return_target=0.08)
+> 
+> #Add transaction cost constraint to specify proportional transaction costs
+> alexjulia <- add.constraint(portfolio=alexjulia, type="transaction_cost", ptc=0.01)
+> 
+> print(alexjulia)
+**************************************************
+PortfolioAnalytics Portfolio Specification 
+**************************************************
+Call:
+portfolio.spec(assets = newport)
+Number of assets: 5 
+Asset Names
+[1] "AAPL" "AIA"  "BHP"  "CS"   "DB"  
+Constraints
+Enabled constraint types
+		- weight_sum 
+		- box 
+		- position_limit 
+		- diversification 
+		- return 
+		- transaction_cost 
+> 
+> summary(alexjulia)
+$assets
+                AAPL      AIA      BHP        CS        DB
+2015-04-01 115.17048 47.98802 39.06343 20.688709 30.090218
+2015-05-01 119.89141 47.29321 33.99104 21.809320 28.318550
+2015-06-01 115.91030 47.32805 31.00550 22.740356 29.003355
+2015-07-01 112.09375 47.09491 29.22331 24.264620 33.676971
+2015-08-01 104.34978 39.96073 28.05043 22.451984 28.907188
+2015-09-01 102.38999 37.49160 24.08239 21.323202 27.416634
+2015-10-01 110.93024 42.68706 25.96645 20.598150 26.878109
+2015-11-01 109.81628 43.34235 21.06370 18.167566 24.704782
+2015-12-01  98.12967 43.62318 20.33736 17.870955 23.223839
+2016-01-01  90.74618 40.11273 17.29781 14.993410 17.203913
+2016-02-01  90.14021 37.16396 17.85046 11.228211 16.530758
+2016-03-01 102.15836 41.14246 20.44789 11.902073 16.290346
+2016-04-01  87.86423 43.71679 25.04390 12.811786 18.232878
+2016-05-01  93.60065 42.54664 21.55182 11.523027 17.117363
+2016-06-01  90.15322 43.89162 22.82240  9.508953 13.203449
+2016-07-01  98.27268 45.50145 23.72538 10.273225 12.924571
+2016-08-01 100.05500 46.44841 23.97310 11.588481 14.184333
+2016-09-01 107.18655 49.03274 27.93735 11.677351 12.587995
+2016-10-01 107.65112 46.55970 28.23567 12.352754 13.838140
+2016-11-01 104.78775 44.99027 30.26748 11.855088 15.194065
+2016-12-01 110.37668 41.61362 28.84844 12.717115 17.405859
+2017-01-01 115.64677 45.94144 33.29100 13.508046 19.146446
+2017-02-01 130.55174 46.65482 30.49323 13.410292 18.934883
+2017-03-01 137.50185 46.60726 29.28382 13.188119 16.501909
+2017-04-01 137.49226 51.22043 29.31794 13.561369 17.377008
+2017-05-01 146.21173 52.55207 28.89793 12.566039 16.809635
+2017-06-01 138.41538 54.89243 29.30970 13.581119 17.303196
+2017-07-01 142.94208 59.22224 34.30857 14.807158 17.351828
+2017-08-01 157.61783 57.77896 35.82388 14.122268 15.552450
+2017-09-01 148.70398 55.66395 33.37797 15.241245 16.807152
+2017-10-01 163.09967 56.72698 34.41304 15.164074 15.824789
+2017-11-01 165.81096 61.17237 34.89169 16.302343 18.343918
+2017-12-01 163.86999 64.40976 38.62019 17.218748 18.509266
+2018-01-01 162.12701 64.74800 41.16464 18.656055 17.838146
+2018-02-01 172.47844 63.34674 39.04847 17.710712 15.503819
+2018-03-01 163.12831 64.16817 37.31018 16.196234 13.597452
+2018-04-01 160.67818 68.32364 40.22234 16.176941 13.286209
+2018-05-01 181.68904 69.57996 42.82926 14.855390 10.776808
+2018-06-01 180.67184 66.96549 43.02714 14.583299 10.439327
+2018-07-01 185.72765 66.86788 44.96299 15.739770 12.837817
+2018-08-01 222.17241 66.08695 41.33221 14.651903 11.068439
+2018-09-01 221.10043 68.23452 42.88088 14.642102 11.166738
+2018-10-01 214.36185 58.20123 40.83027 12.672181  9.603788
+2018-11-01 174.90971 62.61413 39.22110 11.584313  9.004166
+2018-12-01 155.03711 63.74187 42.69583 10.643456  8.011348
+2019-01-01 163.58800 69.13541 45.25988 11.868531  8.728930
+2019-02-01 170.18303 76.98057 48.77798 12.064544  9.082805
+2019-03-01 187.49587 76.63734 50.41006 11.417704  7.981859
+2019-04-01 198.07736 78.40250 49.85432 13.034803  8.139136
+2019-05-01 172.80811 72.22444 48.87513 11.045281  6.654826
+2019-06-01 196.11522 83.54232 54.71265 11.970000  7.630000
+2019-07-01 211.09737 80.22046 51.71856 12.070000  7.810000
+2019-08-01 206.83656 75.60951 46.28590 11.680000  7.250000
+2019-09-01 222.77089 73.42800 46.49304 12.210000  7.500000
+2019-10-01 247.42816 78.45000 47.52112 12.380000  7.250000
+2019-11-01 265.81918 78.40000 50.06672 13.090000  7.210000
+2019-12-01 292.95471 81.80000 53.15642 13.450000  7.780000
+2020-01-01 308.77719 77.75000 49.65865 12.610000  9.150000
+2020-02-01 272.71277 76.90000 42.08014 11.280000  8.720000
+2020-03-01 254.81000 68.15000 35.99790  8.380000  6.510000
+$enabled_constraints
+$enabled_constraints[[1]]
+$type
+[1] "weight_sum"
+$enabled
+[1] TRUE
+$message
+[1] FALSE
+$min_sum
+[1] 1
+$max_sum
+[1] 1
+$call
+add.constraint(portfolio = alexjulia, type = "weight_sum", 
+    min_sum = 1, max_sum = 1)
+attr(,"class")
+[1] "weight_sum_constraint" "constraint"           
+$enabled_constraints[[2]]
+$type
+[1] "box"
+$enabled
+[1] TRUE
+$min
+AAPL  AIA  BHP   CS   DB 
+0.05 0.05 0.05 0.05 0.05 
+$max
+AAPL  AIA  BHP   CS   DB 
+ 0.2  0.2  0.2  0.2  0.2 
+$call
+add.constraint(portfolio = alexjulia, type = "box", min = 0.05, 
+    max = 0.2)
+attr(,"class")
+[1] "box_constraint" "constraint"    
+$enabled_constraints[[3]]
+$type
+[1] "position_limit"
+$enabled
+[1] TRUE
+$max_pos
+[1] 5
+$max_pos_long
+[1] 3
+$max_pos_short
+[1] 2
+$call
+add.constraint(portfolio = alexjulia, type = "position_limit", 
+    max_pos = 5, max_pos_long = 3, max_pos_short = 2)
+attr(,"class")
+[1] "position_limit_constraint" "constraint"               
+$enabled_constraints[[4]]
+$type
+[1] "diversification"
+$enabled
+[1] TRUE
+$div_target
+[1] 0.7
+$call
+add.constraint(portfolio = alexjulia, type = "diversification", 
+    div_target = 0.7)
+attr(,"class")
+[1] "diversification_constraint" "constraint"                
+$enabled_constraints[[5]]
+$type
+[1] "return"
+$enabled
+[1] TRUE
+$return_target
+[1] 0.08
+$call
+add.constraint(portfolio = alexjulia, type = "return", 
+    return_target = 0.08)
+attr(,"class")
+[1] "return_constraint" "constraint"       
+$enabled_constraints[[6]]
+$type
+[1] "transaction_cost"
+$enabled
+[1] TRUE
+$ptc
+[1] 0.01 0.01 0.01 0.01 0.01
+$call
+add.constraint(portfolio = alexjulia, type = "transaction_cost", 
+    ptc = 0.01)
+attr(,"class")
+[1] "transaction_cost_constraint" "constraint"                 
+$disabled_constraints
+list()
+$enabled_objectives
+list()
+$disabled_objectives
+list()
+attr(,"class")
+[1] "summary.portfolio"
+> 
+> ##Adding objectives##
+> 
+> #Add portfolio risk object
+> 
+> alexjulia <- add.objective(portfolio=alexjulia,type="risk",name="ETL", arguments=list(p=0.95))
+> 
+> #Add portfolio return object
+> alexjulia <- add.objective(portfolio=alexjulia,type="return",name="mean")
+> 
+> 
+> print(alexjulia)
+**************************************************
+PortfolioAnalytics Portfolio Specification 
+**************************************************
+Call:
+portfolio.spec(assets = newport)
+Number of assets: 5 
+Asset Names
+[1] "AAPL" "AIA"  "BHP"  "CS"   "DB"  
+Constraints
+Enabled constraint types
+		- weight_sum 
+		- box 
+		- position_limit 
+		- diversification 
+		- return 
+		- transaction_cost 
+Objectives:
+Enabled objective names
+		- ETL 
+		- mean 
+> 
+> # AddPortfolio Risk Budget Objective to specify constraints to minimize component contribution (i.e. equal risk contribution) or specify upper and lower bounds on percentage risk contribution. Here we specify that no asset can contribute more than 30% to total portfolio risk.
+> 
+> alexjulia <- add.objective(portfolio=alexjulia, type="risk_budget", name="ETL",arguments=list(p=0.95), max_prisk=0.3)
+> 
+> 
+> # for an equal risk contribution portfolio, set min_concentration=TRUE
+> alexjulia <- add.objective(portfolio=alexjulia, type="risk_budget", name="ETL",arguments=list(p=0.95), min_concentration=TRUE)
+> 
+> #Add Portfolio Weight Concentration Objective to minimize concentration as measured by the Herfindahl-Hirschman Index
+> alexjulia <- add.objective(portfolio=alexjulia, type="weight_concentration",name="HHI", conc_aversion=0.1)
+> 
+> 
+> print(alexjulia)
+**************************************************
+PortfolioAnalytics Portfolio Specification 
+**************************************************
+Call:
+portfolio.spec(assets = newport)
+Number of assets: 5 
+Asset Names
+[1] "AAPL" "AIA"  "BHP"  "CS"   "DB"  
+Constraints
+Enabled constraint types
+		- weight_sum 
+		- box 
+		- position_limit 
+		- diversification 
+		- return 
+		- transaction_cost 
+Objectives:
+Enabled objective names
+		- ETL 
+		- mean 
+		- ETL 
+		- ETL 
+		- HHI 
+> summary(alexjulia)
+$assets
+                AAPL      AIA      BHP        CS        DB
+2015-04-01 115.17048 47.98802 39.06343 20.688709 30.090218
+2015-05-01 119.89141 47.29321 33.99104 21.809320 28.318550
+2015-06-01 115.91030 47.32805 31.00550 22.740356 29.003355
+2015-07-01 112.09375 47.09491 29.22331 24.264620 33.676971
+2015-08-01 104.34978 39.96073 28.05043 22.451984 28.907188
+2015-09-01 102.38999 37.49160 24.08239 21.323202 27.416634
+2015-10-01 110.93024 42.68706 25.96645 20.598150 26.878109
+2015-11-01 109.81628 43.34235 21.06370 18.167566 24.704782
+2015-12-01  98.12967 43.62318 20.33736 17.870955 23.223839
+2016-01-01  90.74618 40.11273 17.29781 14.993410 17.203913
+2016-02-01  90.14021 37.16396 17.85046 11.228211 16.530758
+2016-03-01 102.15836 41.14246 20.44789 11.902073 16.290346
+2016-04-01  87.86423 43.71679 25.04390 12.811786 18.232878
+2016-05-01  93.60065 42.54664 21.55182 11.523027 17.117363
+2016-06-01  90.15322 43.89162 22.82240  9.508953 13.203449
+2016-07-01  98.27268 45.50145 23.72538 10.273225 12.924571
+2016-08-01 100.05500 46.44841 23.97310 11.588481 14.184333
+2016-09-01 107.18655 49.03274 27.93735 11.677351 12.587995
+2016-10-01 107.65112 46.55970 28.23567 12.352754 13.838140
+2016-11-01 104.78775 44.99027 30.26748 11.855088 15.194065
+2016-12-01 110.37668 41.61362 28.84844 12.717115 17.405859
+2017-01-01 115.64677 45.94144 33.29100 13.508046 19.146446
+2017-02-01 130.55174 46.65482 30.49323 13.410292 18.934883
+2017-03-01 137.50185 46.60726 29.28382 13.188119 16.501909
+2017-04-01 137.49226 51.22043 29.31794 13.561369 17.377008
+2017-05-01 146.21173 52.55207 28.89793 12.566039 16.809635
+2017-06-01 138.41538 54.89243 29.30970 13.581119 17.303196
+2017-07-01 142.94208 59.22224 34.30857 14.807158 17.351828
+2017-08-01 157.61783 57.77896 35.82388 14.122268 15.552450
+2017-09-01 148.70398 55.66395 33.37797 15.241245 16.807152
+2017-10-01 163.09967 56.72698 34.41304 15.164074 15.824789
+2017-11-01 165.81096 61.17237 34.89169 16.302343 18.343918
+2017-12-01 163.86999 64.40976 38.62019 17.218748 18.509266
+2018-01-01 162.12701 64.74800 41.16464 18.656055 17.838146
+2018-02-01 172.47844 63.34674 39.04847 17.710712 15.503819
+2018-03-01 163.12831 64.16817 37.31018 16.196234 13.597452
+2018-04-01 160.67818 68.32364 40.22234 16.176941 13.286209
+2018-05-01 181.68904 69.57996 42.82926 14.855390 10.776808
+2018-06-01 180.67184 66.96549 43.02714 14.583299 10.439327
+2018-07-01 185.72765 66.86788 44.96299 15.739770 12.837817
+2018-08-01 222.17241 66.08695 41.33221 14.651903 11.068439
+2018-09-01 221.10043 68.23452 42.88088 14.642102 11.166738
+2018-10-01 214.36185 58.20123 40.83027 12.672181  9.603788
+2018-11-01 174.90971 62.61413 39.22110 11.584313  9.004166
+2018-12-01 155.03711 63.74187 42.69583 10.643456  8.011348
+2019-01-01 163.58800 69.13541 45.25988 11.868531  8.728930
+2019-02-01 170.18303 76.98057 48.77798 12.064544  9.082805
+2019-03-01 187.49587 76.63734 50.41006 11.417704  7.981859
+2019-04-01 198.07736 78.40250 49.85432 13.034803  8.139136
+2019-05-01 172.80811 72.22444 48.87513 11.045281  6.654826
+2019-06-01 196.11522 83.54232 54.71265 11.970000  7.630000
+2019-07-01 211.09737 80.22046 51.71856 12.070000  7.810000
+2019-08-01 206.83656 75.60951 46.28590 11.680000  7.250000
+2019-09-01 222.77089 73.42800 46.49304 12.210000  7.500000
+2019-10-01 247.42816 78.45000 47.52112 12.380000  7.250000
+2019-11-01 265.81918 78.40000 50.06672 13.090000  7.210000
+2019-12-01 292.95471 81.80000 53.15642 13.450000  7.780000
+2020-01-01 308.77719 77.75000 49.65865 12.610000  9.150000
+2020-02-01 272.71277 76.90000 42.08014 11.280000  8.720000
+2020-03-01 254.81000 68.15000 35.99790  8.380000  6.510000
+$enabled_constraints
+$enabled_constraints[[1]]
+$type
+[1] "weight_sum"
+$enabled
+[1] TRUE
+$message
+[1] FALSE
+$min_sum
+[1] 1
+$max_sum
+[1] 1
+$call
+add.constraint(portfolio = alexjulia, type = "weight_sum", 
+    min_sum = 1, max_sum = 1)
+attr(,"class")
+[1] "weight_sum_constraint" "constraint"           
+$enabled_constraints[[2]]
+$type
+[1] "box"
+$enabled
+[1] TRUE
+$min
+AAPL  AIA  BHP   CS   DB 
+0.05 0.05 0.05 0.05 0.05 
+$max
+AAPL  AIA  BHP   CS   DB 
+ 0.2  0.2  0.2  0.2  0.2 
+$call
+add.constraint(portfolio = alexjulia, type = "box", min = 0.05, 
+    max = 0.2)
+attr(,"class")
+[1] "box_constraint" "constraint"    
+$enabled_constraints[[3]]
+$type
+[1] "position_limit"
+$enabled
+[1] TRUE
+$max_pos
+[1] 5
+$max_pos_long
+[1] 3
+$max_pos_short
+[1] 2
+$call
+add.constraint(portfolio = alexjulia, type = "position_limit", 
+    max_pos = 5, max_pos_long = 3, max_pos_short = 2)
+attr(,"class")
+[1] "position_limit_constraint" "constraint"               
+$enabled_constraints[[4]]
+$type
+[1] "diversification"
+$enabled
+[1] TRUE
+$div_target
+[1] 0.7
+$call
+add.constraint(portfolio = alexjulia, type = "diversification", 
+    div_target = 0.7)
+attr(,"class")
+[1] "diversification_constraint" "constraint"                
+$enabled_constraints[[5]]
+$type
+[1] "return"
+$enabled
+[1] TRUE
+$return_target
+[1] 0.08
+$call
+add.constraint(portfolio = alexjulia, type = "return", 
+    return_target = 0.08)
+attr(,"class")
+[1] "return_constraint" "constraint"       
+$enabled_constraints[[6]]
+$type
+[1] "transaction_cost"
+$enabled
+[1] TRUE
+$ptc
+[1] 0.01 0.01 0.01 0.01 0.01
+$call
+add.constraint(portfolio = alexjulia, type = "transaction_cost", 
+    ptc = 0.01)
+attr(,"class")
+[1] "transaction_cost_constraint" "constraint"                 
+$disabled_constraints
+list()
+$enabled_objectives
+$enabled_objectives[[1]]
+$name
+[1] "ETL"
+$target
+NULL
+$arguments
+$arguments$p
+[1] 0.95
+$arguments$portfolio_method
+[1] "single"
+$enabled
+[1] TRUE
+$multiplier
+[1] 1
+$call
+add.objective(portfolio = alexjulia, type = "risk", name = "ETL", 
+    arguments = list(p = 0.95))
+attr(,"class")
+[1] "portfolio_risk_objective" "objective"               
+$enabled_objectives[[2]]
+$name
+[1] "mean"
+$target
+NULL
+$arguments
+list()
+$enabled
+[1] TRUE
+$multiplier
+[1] -1
+$call
+add.objective(portfolio = alexjulia, type = "return", name = "mean")
+attr(,"class")
+[1] "return_objective" "objective"       
+$enabled_objectives[[3]]
+$name
+[1] "ETL"
+$target
+NULL
+$arguments
+$arguments$p
+[1] 0.95
+$arguments$portfolio_method
+[1] "component"
+$enabled
+[1] TRUE
+$multiplier
+[1] 1
+$max_prisk
+AAPL  AIA  BHP   CS   DB 
+ 0.3  0.3  0.3  0.3  0.3 
+$min_concentration
+[1] FALSE
+$min_difference
+[1] FALSE
+$call
+add.objective(portfolio = alexjulia, type = "risk_budget", 
+    name = "ETL", arguments = list(p = 0.95), max_prisk = 0.3)
+attr(,"class")
+[1] "risk_budget_objective" "objective"            
+$enabled_objectives[[4]]
+$name
+[1] "ETL"
+$target
+NULL
+$arguments
+$arguments$p
+[1] 0.95
+$arguments$portfolio_method
+[1] "component"
+$enabled
+[1] TRUE
+$multiplier
+[1] 1
+$min_concentration
+[1] TRUE
+$min_difference
+[1] FALSE
+$call
+add.objective(portfolio = alexjulia, type = "risk_budget", 
+    name = "ETL", arguments = list(p = 0.95), min_concentration = TRUE)
+attr(,"class")
+[1] "risk_budget_objective" "objective"            
+$enabled_objectives[[5]]
+$name
+[1] "HHI"
+$target
+NULL
+$arguments
+list()
+$enabled
+[1] TRUE
+$multiplier
+[1] 1
+$conc_aversion
+[1] 0.1
+$call
+add.objective(portfolio = alexjulia, type = "weight_concentration", 
+    name = "HHI", conc_aversion = 0.1)
+attr(,"class")
+[1] "weight_concentration_objective" "objective"                     
+$disabled_objectives
+list()
+attr(,"class")
+[1] "summary.portfolio"
+> 
+> 
+> 
+> #Maximize mean return, Add an objective to maximize mean return
+> 
+>    #add constraints
+> 
+> newaj <- add.constraint(portfolio=alexjulia, type="leverage", min_sum=0.99, max_sum=1.01)
+> newaj <- add.constraint(portfolio=newaj, type="box", min=0, max=1)
+> 
+> newaj <- add.objective(portfolio=newaj, type="return", name="mean")
+> 
+> 
+> #Add an objective to minimize portfolio variance.
+> newaj <- add.objective(portfolio=newaj, type="risk", name="StdDev")
+> 
+> newaj<-ts(newaj, frequency = 12, start=c(2015, 04, 01))
+> 
+> opt <- optimize.portfolio(R=newaj, portfolio = newaj,optimize_method = "random",trace=TRUE)
+Error in optimize.portfolio(R = newaj, portfolio = newaj, optimize_method = "random",  : 
+  you must pass in an object of class 'portfolio' to control the optimization
+> 
